@@ -1,0 +1,50 @@
+#!/usr/bin/env node
+
+const child_process = require("child_process");
+const process = require("process");
+
+const fileName = process.argv[2] || "";
+const exec = child_process.exec;
+const execSync = child_process.execSync;
+
+function main(packageName) {
+  if (!packageName.length) {
+    console.log("Usage: git zip PACKAGE_NAME");
+    return;
+  }
+
+  console.log(`[x] Verify is repository has no changes`);
+
+  exec("git status --untracked-files=no -sb", (err, stdout, stderr) => {
+    const list = stdout.split("\n");
+
+    if (list.length === 2) {
+      console.log("[x] No changes, building from clean repository");
+      execSync(`git archive --format zip --output "${packageName}" HEAD`, {
+        stdio: [0, 1, 2],
+      });
+      console.log(`[x] Package created: "${packageName}"`);
+    } else {
+      console.log(
+        "[x] Uncommited changes, building from modified repository\n"
+      );
+      execSync("git status --untracked-files=no -s", { stdio: [0, 1, 2] });
+      console.log("");
+
+      exec("git stash create", (err2, stdout, stderr) => {
+        if (err2) {
+          console.log("Catched Error");
+          console.error(err2);
+          return;
+        }
+        execSync(
+          `git archive --format zip --output "${packageName}" ${stdout}`,
+          { stdio: [0, 1, 2] }
+        );
+        console.log(`[x] Package created: "${packageName}"`);
+      });
+    }
+  });
+}
+
+main(fileName);

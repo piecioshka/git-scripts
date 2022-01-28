@@ -1,0 +1,166 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const exec = require("child_process").exec;
+const process = require("process");
+
+const workspacePath = process.argv[2] || process.cwd();
+
+const pad7 = (value) => String(value).padStart(7);
+
+function isDirectory(path) {
+  try {
+    return fs.lstatSync(path).isDirectory();
+  } catch (ignore) {
+    // do nothing
+  }
+  return false;
+}
+
+function isHidden(dirName) {
+  return /^\.(.*)$/.test(dirName);
+}
+
+function isRepository(dirName) {
+  try {
+    return isDirectory(`${dirName}/.git`);
+  } catch (ignore) {
+    // do nothing
+  }
+
+  return false;
+}
+
+function getDate() {
+  const date = new Date();
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+function countLines(name, path, callback) {
+  const today = getDate();
+  const command = `cd ${path} && git log --all --after="${today} 00:00:00" --before="${today} 23:59:59" --shortstat --oneline`;
+
+  const regexp = {
+    changes: / (\d+) file/gim,
+    insertions: / (\d+) ins/gim,
+    deletions: / (\d+) del/gim,
+  };
+
+  const results = {
+    name: name,
+    changes: 0,
+    insertions: 0,
+    deletions: 0,
+  };
+
+  function commandHandler(error, stdout, stderr) {
+    if (stdout) {
+      const matchChanges = stdout.match(regexp.changes);
+      const matchInsertions = stdout.match(regexp.insertions);
+      const matchDeletions = stdout.match(regexp.deletions);
+
+      // Count changes
+      if (Array.isArray(matchChanges)) {
+        matchChanges.forEach((item) => {
+          results.changes += parseInt(item, 10);
+        });
+      }
+
+      // Count insertions
+      if (Array.isArray(matchInsertions)) {
+        matchInsertions.forEach((item) => {
+          results.insertions += parseInt(item, 10);
+        });
+      }
+
+      // Count deletions
+      if (Array.isArray(matchDeletions)) {
+        matchDeletions.forEach((item) => {
+          results.deletions += parseInt(item, 10);
+        });
+      }
+
+      callback(results);
+    } else if (stderr) {
+      console.error(`[${name}] stderr`, stderr);
+      callback(stderr);
+    } else if (error) {
+      console.error(`[${name}] error`, error);
+      callback(error);
+    } else {
+      callback(null);
+    }
+  }
+
+  exec(command, commandHandler);
+}
+
+function displayProjectStatus(project) {
+  console.log(
+    `
+> ${project.name}
+${pad7(project.changes)} changes
+${pad7(project.insertions)} insertions
+${pad7(project.deletions)} deletions
+    `.trim()
+  );
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+function handleProjectStatus(name, path) {
+  return new Promise((resolve) => {
+    const pathname = `${path}/${name}`;
+    const isNotDirectory = !isDirectory(pathname);
+    const isNotRepository = !isRepository(pathname);
+    const isHideDirectory = isHidden(name);
+
+    if (isNotDirectory || isNotRepository || isHideDirectory) {
+      resolve();
+      return;
+    }
+
+    countLines(name, pathname, (changes) => {
+      resolve(changes);
+    });
+  });
+}
+
+function main(path) {
+  fs.readdir(path, (err, files) => {
+    if (err) {
+      console.log("Catched Error");
+      console.error(err);
+      return;
+    }
+
+    // Revert order to alphabetical.
+    files = files.reverse();
+
+    const handlers = files.map((name) => {
+      return handleProjectStatus(name, path);
+    });
+
+    Promise.all(handlers).then((projects) => {
+      projects = projects.filter((project) => {
+        return project;
+      });
+
+      if (projects.length > 0) {
+        console.log(`\nWorkspace: "${path}"`);
+        console.log(`\nToday's changes:\n`);
+      } else {
+        console.log("Nothing happened today");
+      }
+
+      projects.forEach(displayProjectStatus);
+    });
+  });
+}
+
+main(workspacePath);

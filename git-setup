@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+msg='Initialize project'
+
+source __colors.sh
+
+c=$__COLOR_GREEN
+x=$__COLOR_RESET
+
+echo -e "[x] Run: ${c}git init${x}"
+git init
+
+echo -e "[x] Run: ${c}git add .${x}"
+git add .
+
+echo -e "[x] Run: ${c}git commit -am '$msg'${x}"
+git commit -am "$msg"
+
+echo -e "[x] Run: ${c}git branch -m main${x}"
+git branch -m main

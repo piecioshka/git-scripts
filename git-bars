@@ -1,0 +1,108 @@
+#!/usr/bin/env node
+
+const process = require("process");
+const exec = require("child_process").exec;
+
+const USAGE = `
+    Usage: git bars COMMITER_NAME PERIOD
+
+    Examples:
+
+        $ git bars "Piotr Kowalski" 2020
+        $ git bars "Piotr Kowalski" 2021-04
+`;
+
+const DAYS_IN_MONTH_MAP = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
+function run(command) {
+  return new Promise((resolve, reject) => {
+    exec(command, (err, stdout, stderr) => {
+      if (err || stderr || stdout.length === 0) {
+        return void reject(err);
+      }
+      resolve(stdout);
+    });
+  });
+}
+
+const isSingleYear = (period) => /^\d{4}$/.test(period);
+const isMonth = (period) => /^\d{4}-\d{2}$/.test(period);
+const pad5 = (value) => String(value).padStart(5);
+const pad2Zeros = (value) => String(value).padStart(2, "0");
+// https://graphemica.com/%E2%96%A0
+const bars = (count) => Array.from({ length: count }).fill("■").join("");
+
+async function getShortlog({ author, labelLength, periodStart, periodEnd }) {
+  const output = await run(
+    `git shortlog -sn --author="${author}" --after="${periodStart}" --before="${periodEnd}" < /dev/tty`
+  );
+  return {
+    pariod: periodStart.substring(0, labelLength),
+    value: Number(output.replace(author, "").trim()),
+  };
+}
+
+function displayBars(datalist) {
+  let result = ``;
+  let quanity = 0;
+  datalist.forEach((item) => {
+    quanity += item.value;
+    result += `${item.pariod} ${pad5(item.value)} ${bars(item.value)}\n`;
+  });
+  console.log(`\n${quanity} commits\n${result}`);
+}
+
+function onlyFulfilled(settled) {
+  return settled.filter((x) => x.status === "fulfilled").map((x) => x.value);
+}
+
+function createCollection(length, cb) {
+  return Array.from({ length })
+    .fill(null)
+    .map((_, index) => cb(index));
+}
+
+function importData({ author, period }) {
+  if (isSingleYear(period)) {
+    return Promise.allSettled(
+      createCollection(12, (index) => {
+        return getShortlog({
+          author,
+          labelLength: 7,
+          periodStart: `${period}-${pad2Zeros(index + 1)}-01 00:00:00`,
+          periodEnd: `${period}-${pad2Zeros(index + 1)}-31 23:59:59`,
+        });
+      })
+    );
+  } else if (isMonth(period)) {
+    const month = Number(period.substring(period.length - 2, period.length));
+    return Promise.allSettled(
+      createCollection(DAYS_IN_MONTH_MAP[month - 1], (index) => {
+        return getShortlog({
+          author,
+          labelLength: 10,
+          periodStart: `${period}-${pad2Zeros(index + 1)} 00:00:00`,
+          periodEnd: `${period}-${pad2Zeros(index + 1)} 23:59:59`,
+        });
+      })
+    );
+  } else {
+    throw new Error("unsupported");
+  }
+}
+
+async function main() {
+  const author = process.argv[2];
+  const period = process.argv[3];
+
+  if (!author || !(isSingleYear(period) || isMonth(period))) {
+    console.warn(USAGE);
+    return void process.exit(1);
+  }
+
+  const data = await importData({ author, period });
+  const resolved = onlyFulfilled(data);
+  displayBars(resolved);
+}
+
+main().catch(console.error);

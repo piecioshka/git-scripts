@@ -1,0 +1,158 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const exec = require("child_process").exec;
+const path = require("path");
+const process = require("process");
+
+const workspacePath = process.argv[2] || process.cwd();
+
+const CMD_FIRST_COMMIT = `git log --reverse | sed -n -e '1,5p'`;
+const CMD_GET_DATE = `${CMD_FIRST_COMMIT} | grep -v diff | head -n3 | tail -n1 | cut -f4-9 -d ' '`;
+
+const pad2Zeros = (value) => String(value).padStart(2, "0");
+
+function isDirectory(pathname) {
+  try {
+    const stat = fs.statSync(pathname);
+    return stat.isDirectory();
+  } catch (err) {
+    return false;
+  }
+}
+
+function isGitRepository(pathname) {
+  return isDirectory(path.resolve(pathname, ".git"));
+}
+
+function run(command, pathname = ".") {
+  return new Promise((resolve, reject) => {
+    exec(`cd ${pathname} && ${command}`, (err, stdout, stderr) => {
+      if (err || stderr || stdout.length === 0) {
+        return void reject(err);
+      }
+
+      resolve(stdout);
+    });
+  });
+}
+
+async function getInitialDate(pathname) {
+  const date = await run(CMD_GET_DATE, pathname);
+  return new Date(date);
+}
+
+function getDirectoryList(realPath) {
+  return new Promise((resolve, reject) => {
+    fs.readdir(realPath, (err, files) => {
+      if (err) {
+        return void reject(err);
+      }
+
+      resolve(files);
+    });
+  });
+}
+
+async function describePathname(pathname) {
+  const result = {};
+  result.isGitRepository = isGitRepository(pathname);
+  result.initialDate = await getInitialDate(pathname);
+  return result;
+}
+
+function formatDate(date) {
+  const day = pad2Zeros(date.getDate());
+  const year = pad2Zeros(date.getFullYear());
+  const month = pad2Zeros(date.getMonth() + 1);
+  return `${year}-${month}-${day}`;
+}
+
+function sortByInitialDate(projectA, projectB) {
+  const dateA = formatDate(projectA.initialDate);
+  const dateB = formatDate(projectB.initialDate);
+
+  if (dateB > dateA) {
+    return -1;
+  } else if (dateB < dateA) {
+    return 1;
+  } else {
+    return 0;
+  }
+}
+
+function toRecord(project) {
+  const date = formatDate(project.initialDate);
+  const projectName = project.basename;
+  return `- [${date}] ${projectName}`;
+}
+
+function displayResults(projects) {
+  const keys = Object.keys(projects);
+
+  if (keys.length === 0) {
+    console.log("Not found any git repository in this directory\n");
+    return;
+  }
+
+  keys.forEach((year) => {
+    const projectsInYear = projects[year];
+    console.log(year);
+
+    const projectRecords = projectsInYear.sort(sortByInitialDate).map(toRecord);
+
+    console.log(projectRecords.join("\n"));
+    console.log("");
+  });
+}
+
+function setupPromiseLoop(files) {
+  const projects = {};
+
+  return files.reduce((promise, file) => {
+    const pathname = path.resolve(workspacePath, file);
+
+    if (!isGitRepository(pathname)) {
+      return promise.then(() => {
+        return projects;
+      });
+    }
+
+    return promise
+      .then(() => {
+        return describePathname(pathname);
+      })
+      .then((descriptor) => {
+        if (!descriptor.isGitRepository) {
+          return Promise.resolve();
+        }
+
+        const year = descriptor.initialDate.getFullYear();
+
+        if (!projects[year]) {
+          projects[year] = [];
+        }
+
+        projects[year].push({
+          initialDate: descriptor.initialDate,
+          pathname: pathname,
+          basename: file,
+        });
+        return projects;
+      })
+      .catch((err) => {
+        console.log("Catched Error");
+        console.error(err);
+      });
+  }, Promise.resolve());
+}
+
+console.log(`\nWorkspace: "${workspacePath}"\n`);
+
+async function main() {
+  const files = await getDirectoryList(workspacePath);
+  const projects = await setupPromiseLoop(files);
+  displayResults(projects);
+}
+
+main().catch(console.error);

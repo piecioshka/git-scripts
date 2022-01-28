@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+msg='Save current state'
+
+source __colors.sh
+
+c=$__COLOR_GREEN
+x=$__COLOR_RESET
+
+echo -e "[x] Run: ${c}git add .${x}"
+git add .
+
+echo -e "[x] Run: ${c}git commit -m '$msg'${x}"
+git commit -am "$msg"

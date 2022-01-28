@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+msg='Fire 🔥';
+usage='Usage: git fire "PUT COMMENT HERE'
+
+source __colors.sh
+
+c=$__COLOR_GREEN
+x=$__COLOR_RESET
+
+if [ "$1" ]
+then
+    msg=$1
+fi
+
+echo -e "[x] Run: ${c}git add .${x}"
+git add .
+
+echo -e "[x] Run: ${c}git commit -am '$msg'${x}\n"
+git commit -am "$msg"
+
+echo -e "\n[x] Run: ${c}git push${x}\n"
+git push
