@@ -1,0 +1,60 @@
+#!/usr/bin/env node
+
+const { runCommand, getProcessOptions } = require("./__shared");
+
+const USAGE = `
+    Usage: git changed-packages [--oneline]
+
+    Examples:
+
+        $ git changed-packages
+        $ git changed-packages --oneline
+`;
+
+const GIT_DIFF_BRANCH = `git diff master.. --name-only`;
+const PACKAGES_PATH = /^packages\//;
+const PACKAGE_NAME = /^packages\/([\w-]*)\/(.*)$/;
+
+async function collectChangedPackages() {
+  const diff = await runCommand(GIT_DIFF_BRANCH);
+  const changedFiles = diff.split("\n");
+  const onlyPackagesFiles = changedFiles.filter((x) => PACKAGES_PATH.test(x));
+  const packages = onlyPackagesFiles.reduce((list, filename) => {
+    const matched = filename.match(PACKAGE_NAME);
+    if (Array.isArray(matched)) {
+      const packageName = matched[1];
+      list.add(packageName);
+    }
+    return list;
+  }, new Set());
+  return packages;
+}
+
+function displayOnelineResults(packages) {
+  console.log([...packages].join(" "));
+}
+
+function displayResults(packages) {
+  console.log("List of packages with changed files:");
+  packages.forEach((name) => {
+    console.log(`- ${name}`);
+  });
+}
+
+async function main() {
+  const options = getProcessOptions(process.argv);
+  if (options.h || options.help) {
+    console.log(USAGE);
+    return void process.exit(0);
+  }
+  const packages = await collectChangedPackages();
+  const isOneline = options.oneline;
+
+  if (isOneline) {
+    displayOnelineResults(packages);
+  } else {
+    displayResults(packages);
+  }
+}
+
+main().catch(console.error);
