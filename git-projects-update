@@ -127,30 +127,26 @@ function setupPromiseLoop(files) {
         const output = [];
 
         if (descriptor.isFile) {
-          output.push(basename);
           output.push("[file]");
-          console.log(output.join(" "));
-          return;
-        }
+        } else {
+          if (descriptor.isUpdated) {
+            output.push("[updated]");
+          }
 
-        if (descriptor.isUpdated) {
-          output.push("[updated]");
+          if (!descriptor.isGitRepository) {
+            output.push("[not a git repo]");
+          }
+
+          if (descriptor.isDirtyGitRepository) {
+            output.push("[dirty repo]");
+          }
+
+          if (descriptor.isLocalGitRepository) {
+            output.push("[local git repo]");
+          }
         }
 
         output.push(basename);
-
-        if (!descriptor.isGitRepository) {
-          output.push("[not a git repo]");
-        }
-
-        if (descriptor.isDirtyGitRepository) {
-          output.push("[dirty repo]");
-        }
-
-        if (descriptor.isLocalGitRepository) {
-          output.push("[local git repo]");
-        }
-
         console.log(output.join(" "));
       })
       .catch((err) => {
