@@ -30,7 +30,7 @@ set -gx PATH $HOME/projects/git-scripts/ $PATH
 * `git user` — Display current user
 * `git zip PACKAGE_NAME` — Extract archive from the current repository
 
-## Relatead
+## Related
 
 * https://github.com/ddollar/git-utils
 * https://github.com/jwiegley/git-scripts
