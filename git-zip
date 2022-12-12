@@ -33,7 +33,7 @@ function main(packageName) {
 
       exec("git stash create", (err2, stdout, stderr) => {
         if (err2) {
-          console.log("Catched Error");
+          console.log("Caught an Error");
           console.error(err2);
           return;
         }

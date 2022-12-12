@@ -134,7 +134,7 @@ function handleProjectStatus(name, path) {
 function main(path) {
   fs.readdir(path, (err, files) => {
     if (err) {
-      console.log("Catched Error");
+      console.log("Caught an Error");
       console.error(err);
       return;
     }

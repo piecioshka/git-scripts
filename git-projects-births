@@ -141,7 +141,7 @@ function setupPromiseLoop(files) {
         return projects;
       })
       .catch((err) => {
-        console.log("Catched Error");
+        console.log("Caught an Error");
         console.error(err);
       });
   }, Promise.resolve());
