@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 const process = require("process");
-const { runCommand } = require("./__shared");
+const { runCommand, pad2Zeros } = require("./__shared");
 
 const USAGE = `
-    Usage: git bars COMMITER_NAME PERIOD
+    Usage: git bars COMMITTER_NAME PERIOD
 
     Examples:
 
@@ -17,7 +17,6 @@ const DAYS_IN_MONTH_MAP = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
 const isSingleYear = (period) => /^\d{4}$/.test(period);
 const isMonth = (period) => /^\d{4}-\d{2}$/.test(period);
 const pad5 = (value) => String(value).padStart(5);
-const pad2Zeros = (value) => String(value).padStart(2, "0");
 // https://graphemica.com/%E2%96%A0
 const bars = (count) => Array.from({ length: count }).fill("■").join("");
 
@@ -26,19 +25,19 @@ async function getShortlog({ author, labelLength, periodStart, periodEnd }) {
     `git shortlog -sn --author="${author}" --after="${periodStart}" --before="${periodEnd}" < /dev/tty`
   );
   return {
-    pariod: periodStart.substring(0, labelLength),
+    period: periodStart.substring(0, labelLength),
     value: Number(output.replace(author, "").trim()),
   };
 }
 
 function displayBars(datalist) {
   let result = ``;
-  let quanity = 0;
+  let quantity = 0;
   datalist.forEach((item) => {
-    quanity += item.value;
-    result += `${item.pariod} ${pad5(item.value)} ${bars(item.value)}\n`;
+    quantity += item.value;
+    result += `${item.period} ${pad5(item.value)} ${bars(item.value)}\n`;
   });
-  console.log(`\n${quanity} commits\n${result}`);
+  console.log(`\n${quantity} commits\n${result}`);
 }
 
 function onlyFulfilled(settled) {

@@ -1,40 +1,19 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
 const exec = require("child_process").exec;
 const path = require("path");
 const process = require("process");
+const {
+  isFile,
+  isDirectory,
+  isGitRepository,
+  getDirectoryList,
+} = require("./__shared");
 
 const workspacePath = process.argv[2] || process.cwd();
 
-function isFile(pathname) {
-  try {
-    const stat = fs.statSync(pathname);
-    return stat.isFile();
-  } catch (ignore) {
-    return false;
-  }
-}
-
-function isDirectory(pathname) {
-  try {
-    const stat = fs.statSync(pathname);
-    return stat.isDirectory();
-  } catch (ignore) {
-    return false;
-  }
-}
-
-function isGitRepository(pathname) {
-  return isDirectory(path.resolve(pathname, ".git"));
-}
-
 function isLocalGitRepository(pathname) {
   return new Promise((resolve, reject) => {
-    if (!isGitRepository(pathname)) {
-      return void resolve(false);
-    }
-
     exec(
       `cd ${pathname} && git config remote.origin.url`,
       (err, stdout, stderr) => {
@@ -50,10 +29,6 @@ function isLocalGitRepository(pathname) {
 
 function isDirtyGitRepository(pathname) {
   return new Promise((resolve, reject) => {
-    if (!isGitRepository(pathname)) {
-      return void resolve(false);
-    }
-
     exec(
       `cd ${pathname} && git status --porcelain 2>/dev/null | wc -l`,
       (err, stdout, stderr) => {
@@ -69,10 +44,6 @@ function isDirtyGitRepository(pathname) {
 
 function updateGitRepository(pathname) {
   return new Promise((resolve, reject) => {
-    if (!isGitRepository(pathname)) {
-      return void resolve(false);
-    }
-
     exec(
       `cd ${pathname} && git fetch -p && git pull --all`,
       (err, stdout, stderr) => {
@@ -86,27 +57,21 @@ function updateGitRepository(pathname) {
   });
 }
 
-function getDirectoryList(realPath) {
-  return new Promise((resolve, reject) => {
-    fs.readdir(realPath, (err, files) => {
-      if (err) {
-        return void reject(err);
-      }
-
-      resolve(files);
-    });
-  });
-}
-
 async function describePathname(pathname) {
   try {
     const result = {};
     result.isFile = isFile(pathname);
     result.isDirectory = isDirectory(pathname);
     result.isGitRepository = isGitRepository(pathname);
-    result.isLocalGitRepository = await isLocalGitRepository(pathname);
-    result.isDirtyGitRepository = await isDirtyGitRepository(pathname);
-    result.isUpdated = await updateGitRepository(pathname);
+    result.isLocalGitRepository = result.isGitRepository
+      ? await isLocalGitRepository(pathname)
+      : false;
+    result.isDirtyGitRepository = result.isGitRepository
+      ? await isDirtyGitRepository(pathname)
+      : false;
+    result.isUpdated = result.isGitRepository
+      ? await updateGitRepository(pathname)
+      : false;
     return result;
   } catch (err) {
     console.log("Caught an Error");

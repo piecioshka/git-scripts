@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const process = require("process");
 const { runCommand, getProcessOptions } = require("./__shared");
 
 const USAGE = `

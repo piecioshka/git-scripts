@@ -3,46 +3,20 @@
 const fs = require("fs");
 const exec = require("child_process").exec;
 const process = require("process");
+const { isGitRepository, isDirectory, formatDate } = require("./__shared");
 
 const workspacePath = process.argv[2] || process.cwd();
 
 const pad7 = (value) => String(value).padStart(7);
 
-function isDirectory(path) {
-  try {
-    return fs.lstatSync(path).isDirectory();
-  } catch (ignore) {
-    // do nothing
-  }
-  return false;
-}
-
 function isHidden(dirName) {
   return /^\.(.*)$/.test(dirName);
-}
-
-function isRepository(dirName) {
-  try {
-    return isDirectory(`${dirName}/.git`);
-  } catch (ignore) {
-    // do nothing
-  }
-
-  return false;
-}
-
-function getDate() {
-  const date = new Date();
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 function countLines(name, path, callback) {
-  const today = getDate();
+  const today = formatDate(new Date());
   const command = `cd ${path} && git log --all --after="${today} 00:00:00" --before="${today} 23:59:59" --shortstat --oneline`;
 
   const regexp = {
@@ -117,11 +91,11 @@ function handleProjectStatus(name, path) {
   return new Promise((resolve) => {
     const pathname = `${path}/${name}`;
     const isNotDirectory = !isDirectory(pathname);
-    const isNotRepository = !isRepository(pathname);
+    const isNotRepository = !isGitRepository(pathname);
     const isHideDirectory = isHidden(name);
 
     if (isNotDirectory || isNotRepository || isHideDirectory) {
-      resolve();
+      resolve(undefined);
       return;
     }
 
@@ -147,9 +121,7 @@ function main(path) {
     });
 
     Promise.all(handlers).then((projects) => {
-      projects = projects.filter((project) => {
-        return project;
-      });
+      projects = projects.filter(Boolean);
 
       if (projects.length > 0) {
         console.log(`\nWorkspace: "${path}"`);

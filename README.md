@@ -17,7 +17,7 @@ set -gx PATH $HOME/projects/git-scripts/ $PATH
 
 ## Commands
 
-* `git bars COMMITER_AUTHOR YEAR[_MONTH]` — Display revisions count in the past period
+* `git bars COMMITTER_AUTHOR YEAR[_MONTH]` — Display revisions count in the past period
 * `git changed-packages [--oneline]` — Display names of packages with changed files
 * `git fire [MSG]` — Create commit with all changes and push to the origin
 * `git projects-births [WORKSPACE_PATH]` — Display when projects start for the whole workspace

@@ -13,7 +13,7 @@ function main(packageName) {
     return;
   }
 
-  console.log(`[x] Verify is repository has no changes`);
+  console.log(`[x] Verify if repository has no changes`);
 
   exec("git status --untracked-files=no -sb", (err, stdout, stderr) => {
     const list = stdout.split("\n");
@@ -26,7 +26,7 @@ function main(packageName) {
       console.log(`[x] Package created: "${packageName}"`);
     } else {
       console.log(
-        "[x] Uncommited changes, building from modified repository\n"
+        "[x] Uncommitted changes, building from modified repository\n"
       );
       execSync("git status --untracked-files=no -s", { stdio: [0, 1, 2] });
       console.log("");
