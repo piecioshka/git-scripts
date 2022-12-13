@@ -1,0 +1,22 @@
+> tree
+.
+├── packages
+│   ├── feature-a
+│   │   └── README.md
+│   └── utils
+│       └── README.md
+└── README.md
+
+3 directories, 3 files
+
+> git branch -l
+  main
+* test-branch
+
+> echo "hello world" >> packages/utils/README.md
+
+> git commit -m "Add hello world" --quiet
+
+> git changed-packages --main
+List of packages with changed files:
+- utils

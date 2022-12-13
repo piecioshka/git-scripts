@@ -47,6 +47,7 @@ function isGitRepository(pathname) {
 }
 
 const pad2Zeros = (value) => String(value).padStart(2, "0");
+const pad5 = (value) => String(value).padStart(5);
 
 function getDirectoryList(realPath) {
   return new Promise((resolve, reject) => {
@@ -74,6 +75,7 @@ module.exports = {
   isDirectory,
   isGitRepository,
   pad2Zeros,
+  pad5,
   getDirectoryList,
   formatDate,
 };

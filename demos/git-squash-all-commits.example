@@ -1,0 +1,14 @@
+> git squash-all-commits
+[x] Copying origin URL:
+[x] Run: rm -rf .git/
+[x] Run: git setup
+■■■■■■■■■■■■■■■■■■
+[x] Run: git init
+Initialized empty Git repository in /private/tmp/test/.git/
+[x] Run: git add .
+[x] Run: git commit -am 'Initialize project'
+[master (root-commit) b92ea3d] Initialize project
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 example-file.md
+[x] Run: git branch -m main
+[x] Run: git config remote.origin.url

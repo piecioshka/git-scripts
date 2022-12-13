@@ -4,20 +4,22 @@ const process = require("process");
 const { runCommand, getProcessOptions } = require("./__shared");
 
 const USAGE = `
-    Usage: git changed-packages [--oneline]
+    Usage: git changed-packages [--oneline] [--main]
 
     Examples:
 
         $ git changed-packages
         $ git changed-packages --oneline
+        $ git changed-packages --main
 `;
 
-const GIT_DIFF_BRANCH = `git diff master.. --name-only`;
+const GIT_DIFF_BRANCH = (branch = "master") =>
+  `git diff ${branch}.. --name-only`;
 const PACKAGES_PATH = /^packages\//;
 const PACKAGE_NAME = /^packages\/([\w-]*)\/(.*)$/;
 
-async function collectChangedPackages() {
-  const diff = await runCommand(GIT_DIFF_BRANCH);
+async function collectChangedPackages(branch) {
+  const diff = await runCommand(GIT_DIFF_BRANCH(branch));
   const changedFiles = diff.split("\n");
   const onlyPackagesFiles = changedFiles.filter((x) => PACKAGES_PATH.test(x));
   const packages = onlyPackagesFiles.reduce((list, filename) => {
@@ -48,7 +50,8 @@ async function main() {
     console.log(USAGE);
     return void process.exit(0);
   }
-  const packages = await collectChangedPackages();
+  const branch = options.main ? "main" : "master";
+  const packages = await collectChangedPackages(branch);
   const isOneline = options.oneline;
 
   if (isOneline) {
