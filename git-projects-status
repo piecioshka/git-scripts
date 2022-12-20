@@ -74,13 +74,11 @@ function countLines(name, path, callback) {
 
 function displayProjectStatus(project) {
   console.log(
-    `
-### ${project.name}
+    `### ${project.name}
 
   ${project.changes} changes
   ${project.insertions} insertions
-  ${project.deletions} deletions
-    `.trim()
+  ${project.deletions} deletions`.trim() + '\n'
   );
 }
 
