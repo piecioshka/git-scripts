@@ -1,14 +1,17 @@
 const fs = require("fs");
+const fsPromise = require("node:fs/promises");
 const path = require("path");
 const exec = require("child_process").exec;
 
 function runCommand(command) {
+  // console.log(`[command] ${command}`);
   return new Promise((resolve, reject) => {
     exec(command, (err, stdout, stderr) => {
-      if (err || stderr || stdout.length === 0) {
-        return void reject(err);
+      if (err || stderr) {
+        // console.debug('[error]', err || stderr);
+        return void reject(err || stderr);
       }
-      resolve(stdout);
+      resolve(stdout.replace(/\n$/, ""));
     });
   });
 }
@@ -49,16 +52,8 @@ function isGitRepository(pathname) {
 const pad2Zeros = (value) => String(value).padStart(2, "0");
 const pad5 = (value) => String(value).padStart(5);
 
-function getDirectoryList(realPath) {
-  return new Promise((resolve, reject) => {
-    fs.readdir(realPath, (err, files) => {
-      if (err) {
-        return void reject(err);
-      }
-
-      resolve(files);
-    });
-  });
+function getFilesAndDirectories(directoryPath) {
+  return fsPromise.readdir(directoryPath);
 }
 
 function formatDate(date) {
@@ -76,6 +71,6 @@ module.exports = {
   isGitRepository,
   pad2Zeros,
   pad5,
-  getDirectoryList,
+  getFilesAndDirectories,
   formatDate,
 };

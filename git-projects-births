@@ -3,7 +3,7 @@
 const exec = require("child_process").exec;
 const path = require("path");
 const process = require("process");
-const { isGitRepository, getDirectoryList, formatDate } = require("./__shared");
+const { isGitRepository, getFilesAndDirectories, formatDate } = require("./__shared");
 
 const workspacePath = process.argv[2] || process.cwd();
 
@@ -116,7 +116,7 @@ function setupPromiseLoop(files) {
 console.log(`\nWorkspace: "${workspacePath}"\n`);
 
 async function main() {
-  const files = await getDirectoryList(workspacePath);
+  const files = await getFilesAndDirectories(workspacePath);
   const projects = await setupPromiseLoop(files);
   displayResults(projects);
 }
