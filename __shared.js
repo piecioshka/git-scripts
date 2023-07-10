@@ -1,17 +1,19 @@
-const fs = require("fs");
-const fsPromise = require("node:fs/promises");
-const path = require("path");
-const exec = require("child_process").exec;
+const fs = require('fs');
+const fsPromise = require('node:fs/promises');
+const path = require('path');
+const exec = require('child_process').exec;
 
-function runCommand(command) {
-  // console.log(`[command] ${command}`);
+function runCommand(command, { verbose } = { verbose: false }) {
+  if (verbose) {
+    console.log(`[x] Run: ${command}`);
+  }
   return new Promise((resolve, reject) => {
     exec(command, (err, stdout, stderr) => {
       if (err || stderr) {
         // console.debug('[error]', err || stderr);
         return void reject(err || stderr);
       }
-      resolve(stdout.replace(/\n$/, ""));
+      resolve(stdout.replace(/\n$/, ''));
     });
   });
 }
@@ -21,7 +23,7 @@ const isOption = (arg) => /^\-/.test(arg);
 function getProcessOptions(argv) {
   const options = argv.filter((arg) => isOption(arg));
   return options.reduce((acc, option) => {
-    const optionRaw = option.replace(/^\-*/, "");
+    const optionRaw = option.replace(/^\-*/, '');
     acc[optionRaw] = true;
     return acc;
   }, {});
@@ -46,10 +48,10 @@ function isDirectory(pathname) {
 }
 
 function isGitRepository(pathname) {
-  return isDirectory(path.resolve(pathname, ".git"));
+  return isDirectory(path.resolve(pathname, '.git'));
 }
 
-const pad2Zeros = (value) => String(value).padStart(2, "0");
+const pad2Zeros = (value) => String(value).padStart(2, '0');
 const pad5 = (value) => String(value).padStart(5);
 
 function getFilesAndDirectories(directoryPath) {

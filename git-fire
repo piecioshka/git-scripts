@@ -1,23 +1,19 @@
-#!/usr/bin/env bash
+#!/usr/bin/env node
 
-msg='Fire 🔥';
-usage='Usage: git fire "PUT COMMENT HERE'
+const { runCommand } = require('./__shared');
 
-source __colors.sh
+const usage = 'Usage: git fire "PUT COMMENT HERE"';
+const message = (process.argv[2] || '').trim();
 
-c=$__COLOR_GREEN
-x=$__COLOR_RESET
+async function main() {
+  if (message.length === 0) {
+    console.log(usage);
+    return;
+  }
 
-if [ "$1" ]
-then
-    msg=$1
-fi
+  await runCommand('git add .', { verbose: true });
+  await runCommand(`git commit -am "${message}"`, { verbose: true });
+  await runCommand('git push', { verbose: true });
+}
 
-echo -e "[x] Run: ${c}git add .${x}"
-git add .
-
-echo -e "[x] Run: ${c}git commit -am '$msg'${x}\n"
-git commit -am "$msg"
-
-echo -e "\n[x] Run: ${c}git push${x}\n"
-git push
+main().catch(console.error);
