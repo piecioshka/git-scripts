@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const exec = require("child_process").exec;
-const process = require("process");
-const { isGitRepository, isDirectory, formatDate } = require("./__shared");
+const fs = require('fs');
+const exec = require('child_process').exec;
+const process = require('process');
+const { isGitRepository, isDirectory, formatDate } = require('./__shared');
 
 const workspacePath = process.argv[2] || process.cwd();
 
@@ -78,7 +78,7 @@ function displayProjectStatus(project) {
 
   ${project.changes} changes
   ${project.insertions} insertions
-  ${project.deletions} deletions`.trim() + '\n'
+  ${project.deletions} deletions`.trim() + '\n',
   );
 }
 
@@ -105,7 +105,7 @@ function handleProjectStatus(name, path) {
 function main(path) {
   fs.readdir(path, (err, files) => {
     if (err) {
-      console.log("Caught an Error");
+      console.log('Caught an Error');
       console.error(err);
       return;
     }
@@ -123,7 +123,7 @@ function main(path) {
       if (projects.length > 0) {
         console.log(`\nToday's changes on: "${path}"\n`);
       } else {
-        console.log("Nothing happened today");
+        console.log('Nothing happened today');
       }
 
       projects.forEach(displayProjectStatus);

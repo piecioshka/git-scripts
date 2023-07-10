@@ -1,24 +1,24 @@
 #!/usr/bin/env node
 
-const path = require("path");
-const process = require("process");
+const path = require('path');
+const process = require('process');
 const {
   isFile,
   isDirectory,
   isGitRepository,
   getFilesAndDirectories,
   runCommand,
-} = require("./__shared");
+} = require('./__shared');
 
 async function isLocalGitRepository(pathname) {
   try {
     const output = await runCommand(
-      `cd ${pathname} && git config remote.origin.url`
+      `cd ${pathname} && git config remote.origin.url`,
     );
     return output.length === 0;
   } catch (error) {
     if (error) {
-      console.log("[error]");
+      console.log('[error]');
       console.error(error);
     }
     return false;
@@ -28,12 +28,12 @@ async function isLocalGitRepository(pathname) {
 async function isDirtyGitRepository(pathname) {
   try {
     const output = await runCommand(
-      `cd ${pathname} && git status --porcelain 2>/dev/null | wc -l`
+      `cd ${pathname} && git status --porcelain 2>/dev/null | wc -l`,
     );
     return Boolean(Number(output));
   } catch (error) {
     if (error) {
-      console.log("[error]");
+      console.log('[error]');
       console.error(error);
     }
     return false;
@@ -46,7 +46,7 @@ async function updateGitRepository(pathname) {
     return true;
   } catch (error) {
     if (error) {
-      console.log("[error]");
+      console.log('[error]');
       console.error(error);
     }
     return false;
@@ -84,30 +84,30 @@ function setupPromiseLoop(workspacePath, files) {
         const output = [];
 
         if (descriptor.isFile) {
-          output.push("[file]");
+          output.push('[file]');
         } else {
           if (descriptor.isUpdated) {
-            output.push("[updated]");
+            output.push('[updated]');
           }
 
           if (!descriptor.isGitRepository) {
-            output.push("[not a git repo]");
+            output.push('[not a git repo]');
           }
 
           if (descriptor.isDirtyGitRepository) {
-            output.push("[dirty repo]");
+            output.push('[dirty repo]');
           }
 
           if (descriptor.isLocalGitRepository) {
-            output.push("[local git repo]");
+            output.push('[local git repo]');
           }
         }
 
         output.push(basename);
-        console.log(output.join(" "));
+        console.log(output.join(' '));
       })
       .catch((err) => {
-        console.log("Caught an Error");
+        console.log('Caught an Error');
         console.error(err);
       });
   }, Promise.resolve());

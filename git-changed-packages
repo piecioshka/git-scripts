@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-const process = require("process");
-const { runCommand, getProcessOptions } = require("./__shared");
+const process = require('process');
+const { runCommand, getProcessOptions } = require('./__shared');
 
 const USAGE = `
     Usage: git changed-packages [--oneline] [--main]
@@ -13,14 +13,14 @@ const USAGE = `
         $ git changed-packages --main
 `;
 
-const GIT_DIFF_BRANCH = (branch = "master") =>
+const GIT_DIFF_BRANCH = (branch = 'master') =>
   `git diff ${branch}.. --name-only`;
 const PACKAGES_PATH = /^packages\//;
 const PACKAGE_NAME = /^packages\/([\w-]*)\/(.*)$/;
 
 async function collectChangedPackages(branch) {
   const diff = await runCommand(GIT_DIFF_BRANCH(branch));
-  const changedFiles = diff.split("\n");
+  const changedFiles = diff.split('\n');
   const onlyPackagesFiles = changedFiles.filter((x) => PACKAGES_PATH.test(x));
   const packages = onlyPackagesFiles.reduce((list, filename) => {
     const matched = filename.match(PACKAGE_NAME);
@@ -34,11 +34,11 @@ async function collectChangedPackages(branch) {
 }
 
 function displayOnelineResults(packages) {
-  console.log([...packages].join(" "));
+  console.log([...packages].join(' '));
 }
 
 function displayResults(packages) {
-  console.log("List of packages with changed files:");
+  console.log('List of packages with changed files:');
   packages.forEach((name) => {
     console.log(`- ${name}`);
   });
@@ -50,7 +50,7 @@ async function main() {
     console.log(USAGE);
     return void process.exit(0);
   }
-  const branch = options.main ? "main" : "master";
+  const branch = options.main ? 'main' : 'master';
   const packages = await collectChangedPackages(branch);
   const isOneline = options.oneline;
 
