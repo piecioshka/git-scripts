@@ -2,19 +2,14 @@
 
 msg='Initialize project'
 
-source __colors.sh
-
-c=$__COLOR_GREEN
-x=$__COLOR_RESET
-
-echo -e "[x] Run: ${c}git init${x}"
+echo -e "[x] Run: git init"
 git init
 
-echo -e "[x] Run: ${c}git add .${x}"
+echo -e "[x] Run: git add ."
 git add .
 
-echo -e "[x] Run: ${c}git commit -am '$msg'${x}"
+echo -e "[x] Run: git commit -am '$msg'"
 git commit -am "$msg"
 
-echo -e "[x] Run: ${c}git branch -m main${x}"
+echo -e "[x] Run: git branch -m main"
 git branch -m main

@@ -1,19 +1,15 @@
 #!/usr/bin/env bash
 
-source __colors.sh
-
-c=$__COLOR_GREEN
-x=$__COLOR_RESET
 repo=$(git config remote.origin.url)
 
-echo -e "[x] Copying origin URL: ${c}${repo}${x}"
+echo -e "[x] Copying origin URL: ${repo}"
 
-echo -e "[x] Run: ${c}rm -rf .git/${x}"
+echo -e "[x] Run: rm -rf .git/"
 rm -rf .git/
 
-echo -e "[x] Run: ${c}git setup${x}"
+echo -e "[x] Run: git setup"
 echo -e "■■■■■■■■■■■■■■■■■■"
 git setup
 
-echo -e "[x] Run: ${c}git config remote.origin.url ${repo}${x}\n"
+echo -e "[x] Run: git config remote.origin.url ${repo}\n"
 git config remote.origin.url ${repo}

@@ -2,13 +2,8 @@
 
 msg='Save current state'
 
-source __colors.sh
-
-c=$__COLOR_GREEN
-x=$__COLOR_RESET
-
-echo -e "[x] Run: ${c}git add .${x}"
+echo -e "[x] Run: git add ."
 git add .
 
-echo -e "[x] Run: ${c}git commit -m '$msg'${x}"
+echo -e "[x] Run: git commit -m '$msg'"
 git commit -am "$msg"

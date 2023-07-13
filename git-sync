@@ -1,30 +1,25 @@
 #!/usr/bin/env bash
 
-source __colors.sh
-
-c=$__COLOR_GREEN
-x=$__COLOR_RESET
-
-echo -e "[x] Run: ${c}git config remote.origin.url${x}\n"
+echo -e "[x] Run: git config remote.origin.url\n"
 git config remote.origin.url
 
-echo -e "\n[x] Run: ${c}git status -sb${x}\n"
+echo -e "\n[x] Run: git status -sb\n"
 git status -sb
 
-echo -e "\n[x] Run: ${c}git branch --all${x}\n"
+echo -e "\n[x] Run: git branch --all\n"
 git branch --all
 
-echo -e "\n[x] Run: ${c}git tag -l${x}\n"
+echo -e "\n[x] Run: git tag -l\n"
 git tag -l
 
-echo -e "[x] Run: ${c}git pull${x}\n"
+echo -e "[x] Run: git pull\n"
 git pull
 
-echo -e "\n[x] Run: ${c}git fetch -p${x}\n"
+echo -e "\n[x] Run: git fetch -p\n"
 git fetch -p
 
-echo -e "[x] Run: ${c}git push --all${x}\n"
+echo -e "[x] Run: git push --all\n"
 git push
 
-echo -e "\n[x] Run: ${c}git push --tags${x}\n"
+echo -e "\n[x] Run: git push --tags\n"
 git push --tags
