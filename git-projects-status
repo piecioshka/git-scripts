@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
 const exec = require('child_process').exec;
 const process = require('process');
-const { isGitRepository, isDirectory, formatDate } = require('./__shared');
-
-const workspacePath = process.argv[2] || process.cwd();
+const {
+  isGitRepository,
+  isDirectory,
+  formatDate,
+  getFilesAndDirectories,
+} = require('./__shared');
 
 function isHidden(dirName) {
   return /^\.(.*)$/.test(dirName);
@@ -76,9 +78,9 @@ function displayProjectStatus(project) {
   console.log(
     `### ${project.name}
 
-  ${project.changes} changes
-  ${project.insertions} insertions
-  ${project.deletions} deletions`.trim() + '\n',
+- ${project.changes} changes
+- ${project.insertions} insertions
+- ${project.deletions} deletions`.trim() + '\n',
   );
 }
 
@@ -102,33 +104,31 @@ function handleProjectStatus(name, path) {
   });
 }
 
-function main(path) {
-  fs.readdir(path, (err, files) => {
-    if (err) {
-      console.log('Caught an Error');
-      console.error(err);
+function setupPromiseLoop(files, path) {
+  // Revert order to alphabetical.
+  files = files.reverse();
+
+  const handlers = files.map((name) => {
+    return handleProjectStatus(name, path);
+  });
+
+  Promise.all(handlers).then((projects) => {
+    projects = projects.filter(Boolean);
+
+    if (projects.length == 0) {
+      console.log('Nothing happened today');
       return;
     }
 
-    // Revert order to alphabetical.
-    files = files.reverse();
-
-    const handlers = files.map((name) => {
-      return handleProjectStatus(name, path);
-    });
-
-    Promise.all(handlers).then((projects) => {
-      projects = projects.filter(Boolean);
-
-      if (projects.length > 0) {
-        console.log(`\nToday's changes on: "${path}"\n`);
-      } else {
-        console.log('Nothing happened today');
-      }
-
-      projects.forEach(displayProjectStatus);
-    });
+    projects.forEach(displayProjectStatus);
   });
 }
 
-main(workspacePath);
+async function main() {
+  const workspacePath = process.argv[2] || process.cwd();
+  console.log(`Workspace: "${workspacePath}"\n`);
+  const files = await getFilesAndDirectories(workspacePath);
+  setupPromiseLoop(files, workspacePath);
+}
+
+main().catch(console.error);

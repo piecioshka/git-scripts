@@ -71,7 +71,7 @@ async function describePathname(pathname) {
   return result;
 }
 
-function setupPromiseLoop(workspacePath, files) {
+function setupPromiseLoop(files, workspacePath) {
   return files.reduce((promise, file) => {
     const pathname = path.resolve(workspacePath, file);
     const basename = path.basename(pathname);
@@ -115,9 +115,9 @@ function setupPromiseLoop(workspacePath, files) {
 
 async function main() {
   const workspacePath = process.argv[2] || process.cwd();
-  console.log(`\nWorkspace: "${path.resolve(workspacePath)}"\n`);
+  console.log(`Workspace: "${workspacePath}"\n`);
   const files = await getFilesAndDirectories(workspacePath);
-  await setupPromiseLoop(workspacePath, files);
+  await setupPromiseLoop(files, workspacePath);
 }
 
 main().catch(console.error);

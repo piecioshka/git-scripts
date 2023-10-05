@@ -9,8 +9,6 @@ const {
   runCommand,
 } = require('./__shared');
 
-const workspacePath = process.argv[2] || process.cwd();
-
 const CMD_FIRST_COMMIT = `git log --reverse | sed -n -e '1,5p'`;
 const CMD_GET_DATE = `${CMD_FIRST_COMMIT} | grep -v diff | head -n3 | tail -n1 | cut -f4-9 -d ' '`;
 
@@ -64,7 +62,7 @@ function displayResults(projects) {
   });
 }
 
-function setupPromiseLoop(files) {
+function setupPromiseLoop(files, workspacePath) {
   const projects = {};
 
   return files.reduce((promise, file) => {
@@ -105,11 +103,11 @@ function setupPromiseLoop(files) {
   }, Promise.resolve());
 }
 
-console.log(`\nWorkspace: "${workspacePath}"\n`);
-
 async function main() {
+  const workspacePath = process.argv[2] || process.cwd();
+  console.log(`Workspace: "${workspacePath}"\n`);
   const files = await getFilesAndDirectories(workspacePath);
-  const projects = await setupPromiseLoop(files);
+  const projects = await setupPromiseLoop(files, workspacePath);
   displayResults(projects);
 }
 
