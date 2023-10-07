@@ -83,7 +83,7 @@ async function main() {
   const period = process.argv[3];
 
   if (!author || !(isSingleYear(period) || isMonth(period))) {
-    console.warn(USAGE);
+    console.log(USAGE);
     return void process.exit(1);
   }
 

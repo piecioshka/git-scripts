@@ -6,10 +6,13 @@ const process = require('process');
 const fileName = process.argv[2] || '';
 const exec = child_process.exec;
 const execSync = child_process.execSync;
+const USAGE = `
+    Usage: git zip PACKAGE_NAME
+`;
 
 function main(packageName) {
   if (!packageName.length) {
-    console.log('Usage: git zip PACKAGE_NAME');
+    console.log(USAGE);
     return;
   }
 
