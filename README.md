@@ -19,57 +19,19 @@ set -gx PATH $HOME/projects/git-scripts/ $PATH
 
 ## Commands
 
-* `git bars COMMITTER_AUTHOR YEAR[_MONTH]` — Display revisions count in the past period
-
-  ![](demos/git-bars.example.png)
-
-* `git changed-packages [--oneline] [--main]` — Display names of packages with changed files
-
-  ![](demos/git-changed-packages.example.png)
-
-* `git fire "MESSAGE"` — Create commit with all changes and push to the origin
-
-  ![](demos/git-fire.example.png)
-
-* `git projects-births [WORKSPACE_PATH=.]` — Display when projects start for the whole workspace
-
-  ![](demos/git-projects-births.example.png)
-
-* `git projects-status [WORKSPACE_PATH=.]` — Display status for all projects in a workspace
-
-  ![](demos/git-projects-status.example.png)
-
-* `git projects-update [WORKSPACE_PATH=.]` — Update all projects in a workspace
-
-  ![](demos/git-projects-update.example.png)
-
-* `git run-on-nested-repos COMMAND` — Run the command in all nested Git repositories
-
-  ![](demos/git-run-on-nested-repos.example.png)
-
-* `git save` — Create revision with a dummy commit message
-
-  ![](demos/git-save.example.png)
-
-* `git setup` — Init repository and create initial revision
-
-  ![](demos/git-setup.example.png)
-
-* `git squash-all-commits` — Remove `.git/` directory and setup initialize repo again
-
-  ![](demos/git-squash-all-commits.example.png)
-
-* `git sync` — Check if local nad remote repo states are the same
-
-  ![](demos/git-sync.example.png)
-
-* `git user` — Display current user
-
-  ![](demos/git-user.example.png)
-
-* `git zip PACKAGE_NAME` — Extract archive from the current repository
-
-  ![](demos/git-zip.example.png)
+* [demo](demos/git-bars.example) `git bars COMMITTER_AUTHOR YEAR[_MONTH]` — Display revisions count in the past period
+* [demo](demos/git-changed-packages.example) `git changed-packages [--oneline] [--main]` — Display names of packages with changed files
+* [demo](demos/git-fire.example) `git fire "MESSAGE"` — Create commit with all changes and push to the origin
+* [demo](demos/git-projects-births.example) `git projects-births [WORKSPACE_PATH=.]` — Display when projects start for the whole workspace
+* [demo](demos/git-projects-status.example) `git projects-status [WORKSPACE_PATH=.]` — Display status for all projects in a workspace
+* [demo](demos/git-projects-update.example) `git projects-update [WORKSPACE_PATH=.]` — Update all projects in a workspace
+* [demo](demos/git-run-on-nested-repos.example) `git run-on-nested-repos COMMAND` — Run the command in all nested Git repositories
+* [demo](demos/git-save.example) `git save` — Create revision with a dummy commit message
+* [demo](demos/git-setup.example) `git setup` — Init repository and create initial revision
+* [demo](demos/git-squash-all-commits.example) `git squash-all-commits` — Remove `.git/` directory and setup initialize repo again
+* [demo](demos/git-sync.example) `git sync` — Check if local nad remote repo states are the same
+* [demo](demos/git-user.example) `git user` — Display current user
+* [demo](demos/git-zip.example) `git zip PACKAGE_NAME` — Extract archive from the current repository
 
 ## Related projects
 
@@ -77,7 +39,3 @@ set -gx PATH $HOME/projects/git-scripts/ $PATH
 * https://github.com/jwiegley/git-scripts
 * https://github.com/knadh/git-bars
 * https://github.com/nvie/gitflow
-
-## Screenshots 📸
-
-To make screenshots I used [ray.so](https://ray.so/) _(use Bash theme, without background)_

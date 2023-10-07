@@ -27,16 +27,16 @@ function getLevelForPath(path) {
 }
 
 async function enter(currentPath, { basePath, baseLevel }) {
-  const dirs = await getDirectories(currentPath);
+  const dirs = getDirectories(currentPath);
 
   for (const fileName of dirs) {
     const fullFileName = `${currentPath}/${fileName}`;
-    if (await isDirectory(fullFileName)) {
+    if (isDirectory(fullFileName)) {
       const currentLevel = getLevelForPath(fullFileName);
       const deep = currentLevel - baseLevel;
       const directory = `### .${fullFileName.replace(basePath, '')}`;
 
-      if (await isGitRepository(fullFileName)) {
+      if (isGitRepository(fullFileName)) {
         console.log(`${directory} > ${command}`);
         try {
           const results = await runCommand(

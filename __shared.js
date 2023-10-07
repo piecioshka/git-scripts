@@ -1,5 +1,4 @@
 const fs = require('fs');
-const fsPromise = require('node:fs/promises');
 const path = require('path');
 const exec = require('child_process').exec;
 
@@ -59,11 +58,11 @@ function isHidden(dirName) {
 }
 
 function getFilesAndDirectories(directoryPath) {
-  return fsPromise.readdir(directoryPath);
+  return fs.readdirSync(directoryPath);
 }
 
-async function getDirectories(directoryPath) {
-  const directories = await getFilesAndDirectories(directoryPath);
+function getDirectories(directoryPath) {
+  const directories = getFilesAndDirectories(directoryPath);
   return directories.filter((x) => !isHidden(x));
 }
 

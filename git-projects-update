@@ -114,7 +114,7 @@ function setupPromiseLoop(files, workspacePath) {
 
 async function main() {
   const workspacePath = process.argv[2] || process.cwd();
-  const files = await getFilesAndDirectories(workspacePath);
+  const files = getFilesAndDirectories(workspacePath);
   await setupPromiseLoop(files, workspacePath);
 }
 
