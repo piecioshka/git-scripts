@@ -18,7 +18,7 @@ async function isLocalGitRepository(pathname) {
     return output.length === 0;
   } catch (error) {
     if (error) {
-      console.log('[error]');
+      console.log(`[error] (local git repository) ${path.basename(pathname)}`);
       console.error(error);
     }
     return false;
@@ -33,7 +33,7 @@ async function isDirtyGitRepository(pathname) {
     return Boolean(Number(output));
   } catch (error) {
     if (error) {
-      console.log('[error]');
+      console.log(`[error] (dirty git repository) ${path.basename(pathname)}`);
       console.error(error);
     }
     return false;
@@ -46,7 +46,7 @@ async function updateGitRepository(pathname) {
     return true;
   } catch (error) {
     if (error) {
-      console.log('[error]');
+      console.log(`[error] (update git repository) ${path.basename(pathname)}`);
       console.error(error);
     }
     return false;
@@ -74,7 +74,6 @@ async function describePathname(pathname) {
 function setupPromiseLoop(files, workspacePath) {
   return files.reduce((promise, file) => {
     const pathname = path.resolve(workspacePath, file);
-    const basename = path.basename(pathname);
 
     return promise
       .then(() => {
@@ -103,7 +102,7 @@ function setupPromiseLoop(files, workspacePath) {
           }
         }
 
-        output.push(basename);
+        output.push(path.basename(pathname));
         console.log(output.join(' '));
       })
       .catch((err) => {
@@ -115,7 +114,6 @@ function setupPromiseLoop(files, workspacePath) {
 
 async function main() {
   const workspacePath = process.argv[2] || process.cwd();
-  console.log(`Workspace: "${workspacePath}"\n`);
   const files = await getFilesAndDirectories(workspacePath);
   await setupPromiseLoop(files, workspacePath);
 }

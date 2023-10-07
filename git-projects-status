@@ -5,13 +5,10 @@ const process = require('process');
 const {
   isGitRepository,
   isDirectory,
+  isHidden,
   formatDate,
   getFilesAndDirectories,
 } = require('./__shared');
-
-function isHidden(dirName) {
-  return /^\.(.*)$/.test(dirName);
-}
 
 // ---------------------------------------------------------------------------------------------------------------------
 
@@ -125,8 +122,8 @@ function setupPromiseLoop(files, path) {
 }
 
 async function main() {
+  console.log('');
   const workspacePath = process.argv[2] || process.cwd();
-  console.log(`Workspace: "${workspacePath}"\n`);
   const files = await getFilesAndDirectories(workspacePath);
   setupPromiseLoop(files, workspacePath);
 }

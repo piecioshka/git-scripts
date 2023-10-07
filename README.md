@@ -1,6 +1,8 @@
 # git-scripts
 
-Utility Git scripts by _[@piecioshka](https://twitter.com/piecioshka)_
+Git utility scripts
+
+_Created by [@piecioshka](https://twitter.com/piecioshka)_
 
 ## Installation
 
@@ -15,7 +17,7 @@ export PATH="$HOME/projects/git-scripts/:$PATH"
 set -gx PATH $HOME/projects/git-scripts/ $PATH
 ```
 
-When you modify shell configs, please restart the terminal to apply new settings.
+**TIP**: When you modify shell configs, please restart the terminal to apply new settings.
 
 ## Commands
 
@@ -42,6 +44,10 @@ When you modify shell configs, please restart the terminal to apply new settings
 * `git projects-update [WORKSPACE_PATH=.]` — Update all projects in a workspace
 
   ![](demos/git-projects-update.example.png)
+
+* `git run-on-nested-repos` — Run command in all nested repositories
+
+  ![](demos/git-run-on-nested-repos.example.png)
 
 * `git save` — Create revision with a dummy commit message
 
@@ -73,3 +79,7 @@ When you modify shell configs, please restart the terminal to apply new settings
 * https://github.com/jwiegley/git-scripts
 * https://github.com/knadh/git-bars
 * https://github.com/nvie/gitflow
+
+## Screenshots 📸
+
+To make a screenshots I used https://ray.so/ _(use Bash theme, without background)_

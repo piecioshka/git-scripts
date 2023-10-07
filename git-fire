@@ -3,7 +3,7 @@
 const { runCommand } = require('./__shared');
 
 const USAGE = `
-    Usage: git fire "PUT COMMENT HERE"
+    Usage: git fire "MESSAGE"
 `;
 const message = (process.argv[2] || '').trim();
 

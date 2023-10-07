@@ -1,0 +1,16 @@
+> git run-on-nested-repos "git config --get remote.origin.url"
+
+### ./battery-life-extender > git config --get remote.origin.url
+git@github.com:piecioshka/battery-life-extender.git
+
+### ./eslint-config-piecioshka > git config --get remote.origin.url
+git@github.com:piecioshka/eslint-config-piecioshka.git
+
+### ./fakes > git config --get remote.origin.url
+git@github.com:piecioshka/fakes.git
+
+### ./fakes-auth > git config --get remote.origin.url
+git@github.com:piecioshka/fakes-auth.git
+
+### ./git-scripts > git config --get remote.origin.url
+git@github.com:piecioshka/git-scripts.git

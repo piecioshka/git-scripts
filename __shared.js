@@ -54,8 +54,17 @@ function isGitRepository(pathname) {
 const pad2Zeros = (value) => String(value).padStart(2, '0');
 const pad5 = (value) => String(value).padStart(5);
 
+function isHidden(dirName) {
+  return /^\.(.*)$/.test(dirName);
+}
+
 function getFilesAndDirectories(directoryPath) {
   return fsPromise.readdir(directoryPath);
+}
+
+async function getDirectories(directoryPath) {
+  const directories = await getFilesAndDirectories(directoryPath);
+  return directories.filter((x) => !isHidden(x));
 }
 
 function formatDate(date) {
@@ -71,8 +80,10 @@ module.exports = {
   isFile,
   isDirectory,
   isGitRepository,
+  isHidden,
   pad2Zeros,
   pad5,
   getFilesAndDirectories,
+  getDirectories,
   formatDate,
 };

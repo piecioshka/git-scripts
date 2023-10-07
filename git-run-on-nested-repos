@@ -1,0 +1,75 @@
+#!/usr/bin/env node
+
+const {
+  isDirectory,
+  isGitRepository,
+  getDirectories,
+  runCommand,
+} = require('./__shared');
+
+const command = process.argv[2];
+const maxLevels = 5;
+const USAGE = `
+    Usage: git run-on-nested-repos COMMAND
+
+    Examples:
+
+        $ git run-on-nested-repos "git config --get remote.origin.url"
+`;
+
+if (!command) {
+  console.log(USAGE);
+  process.exit(1);
+}
+
+function getLevelForPath(path) {
+  return path.split('/').length;
+}
+
+async function enter(currentPath, { basePath, baseLevel }) {
+  const dirs = await getDirectories(currentPath);
+
+  for (const fileName of dirs) {
+    const fullFileName = `${currentPath}/${fileName}`;
+    if (await isDirectory(fullFileName)) {
+      const currentLevel = getLevelForPath(fullFileName);
+      const deep = currentLevel - baseLevel;
+      const directory = `### .${fullFileName.replace(basePath, '')}`;
+
+      if (await isGitRepository(fullFileName)) {
+        console.log(`${directory} > ${command}`);
+        try {
+          const results = await runCommand(
+            `cd "${fullFileName}" && ${command}`,
+          );
+          if (results) {
+            console.log(`${results}`);
+          }
+        } catch (err) {
+          if (err) {
+            console.log('Caught an Error');
+            console.error(err);
+          }
+        } finally {
+          console.log('');
+        }
+      } else {
+        // console.log(`This is not a Git repository: ${fullFileName}`);
+        if (deep < maxLevels) {
+          await enter(fullFileName, { basePath, baseLevel });
+        }
+      }
+    } else {
+      // console.log(`This is not a directory: ${fileName}`);
+    }
+  }
+}
+
+async function main() {
+  console.log('');
+  const basePath = await runCommand('pwd');
+  const baseLevel = getLevelForPath(basePath);
+  await enter(basePath, { basePath, baseLevel });
+}
+
+main().catch(console.error);
