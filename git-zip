@@ -13,7 +13,7 @@ const USAGE = `
 function main(packageName) {
   if (!packageName.length) {
     console.log(USAGE);
-    return;
+    return void process.exit(1);
   }
 
   console.log(`[x] Verify if repository has no changes`);

@@ -10,7 +10,7 @@ const message = (process.argv[2] || '').trim();
 async function main() {
   if (message.length === 0) {
     console.log(USAGE);
-    return;
+    return void process.exit(1);
   }
 
   await runCommand('git add .', { verbose: true });

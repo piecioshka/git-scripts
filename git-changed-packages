@@ -48,7 +48,7 @@ async function main() {
   const options = getProcessOptions(process.argv);
   if (options.h || options.help) {
     console.log(USAGE);
-    return void process.exit(0);
+    return void process.exit(1);
   }
   const branch = options.main ? 'main' : 'master';
   const packages = await collectChangedPackages(branch);
