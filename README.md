@@ -2,8 +2,6 @@
 
 Git utility scripts
 
-_Created by [@piecioshka](https://twitter.com/piecioshka)_
-
 ## Installation
 
 ```bash
@@ -29,7 +27,7 @@ set -gx PATH $HOME/projects/git-scripts/ $PATH
 
   ![](demos/git-changed-packages.example.png)
 
-* `git fire [MSG]` — Create commit with all changes and push to the origin
+* `git fire "MESSAGE"` — Create commit with all changes and push to the origin
 
   ![](demos/git-fire.example.png)
 
@@ -45,7 +43,7 @@ set -gx PATH $HOME/projects/git-scripts/ $PATH
 
   ![](demos/git-projects-update.example.png)
 
-* `git run-on-nested-repos` — Run command in all nested repositories
+* `git run-on-nested-repos COMMAND` — Run the command in all nested Git repositories
 
   ![](demos/git-run-on-nested-repos.example.png)
 
@@ -73,7 +71,7 @@ set -gx PATH $HOME/projects/git-scripts/ $PATH
 
   ![](demos/git-zip.example.png)
 
-## Related
+## Related projects
 
 * https://github.com/ddollar/git-utils
 * https://github.com/jwiegley/git-scripts
@@ -82,4 +80,4 @@ set -gx PATH $HOME/projects/git-scripts/ $PATH
 
 ## Screenshots 📸
 
-To make a screenshots I used https://ray.so/ _(use Bash theme, without background)_
+To make screenshots I used [ray.so](https://ray.so/) _(use Bash theme, without background)_
