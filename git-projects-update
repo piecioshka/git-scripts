@@ -90,15 +90,15 @@ function setupPromiseLoop(files, workspacePath) {
           }
 
           if (!descriptor.isGitRepository) {
-            output.push('[not a git repo]');
+            output.push('[not a Git repo]');
           }
 
           if (descriptor.isDirtyGitRepository) {
-            output.push('[dirty repo]');
+            output.push('[dirty]');
           }
 
           if (descriptor.isLocalGitRepository) {
-            output.push('[local git repo]');
+            output.push('[local Git repo]');
           }
         }
 
