@@ -11,21 +11,25 @@ const {
 } = require('./__shared');
 
 async function isLocalGitRepository(pathname) {
+  if (!isGitRepository(pathname)) {
+    return false;
+  }
+
   try {
     const output = await runCommand(
       `cd ${pathname} && git config remote.origin.url`,
     );
     return output.length === 0;
   } catch (error) {
-    if (error) {
-      console.log(`[error] (local git repository) ${path.basename(pathname)}`);
-      console.error(error);
-    }
-    return false;
+    return true;
   }
 }
 
 async function isDirtyGitRepository(pathname) {
+  if (!isGitRepository(pathname)) {
+    return false;
+  }
+
   try {
     const output = await runCommand(
       `cd ${pathname} && git status --porcelain 2>/dev/null | wc -l`,
@@ -41,14 +45,14 @@ async function isDirtyGitRepository(pathname) {
 }
 
 async function updateGitRepository(pathname) {
+  if (isGitRepository(pathname) && !isLocalGitRepository(pathname)) {
+    return false;
+  }
+
   try {
     await runCommand(`cd ${pathname} && git fetch -p && git pull --all`);
     return true;
   } catch (error) {
-    if (error) {
-      console.log(`[error] (update git repository) ${path.basename(pathname)}`);
-      console.error(error);
-    }
     return false;
   }
 }
@@ -58,16 +62,9 @@ async function describePathname(pathname) {
   result.isFile = isFile(pathname);
   result.isDirectory = isDirectory(pathname);
   result.isGitRepository = isGitRepository(pathname);
-  result.isLocalGitRepository = result.isGitRepository
-    ? await isLocalGitRepository(pathname)
-    : false;
-  result.isDirtyGitRepository = result.isGitRepository
-    ? await isDirtyGitRepository(pathname)
-    : false;
-  result.isUpdated =
-    result.isGitRepository && !result.isLocalGitRepository
-      ? await updateGitRepository(pathname)
-      : false;
+  result.isLocalGitRepository = await isLocalGitRepository(pathname);
+  result.isDirtyGitRepository = await isDirtyGitRepository(pathname);
+  result.isUpdated = await updateGitRepository(pathname);
   return result;
 }
 
