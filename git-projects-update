@@ -83,12 +83,12 @@ function setupPromiseLoop(files, workspacePath) {
         } else if (!descriptor.isGitRepository) {
           output.push('[not a Git repo]');
         } else {
-          if (descriptor.isUpdated) {
-            output.push('[updated]');
-          }
-
           if (descriptor.isDirtyGitRepository) {
             output.push('[dirty]');
+          }
+
+          if (descriptor.isUpdated) {
+            output.push('[updated]');
           }
 
           if (descriptor.isLocalGitRepository) {
