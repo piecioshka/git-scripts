@@ -45,16 +45,15 @@ async function isDirtyGitRepository(pathname) {
 }
 
 async function updateGitRepository(pathname) {
-  if (isGitRepository(pathname) && !isLocalGitRepository(pathname)) {
+  if (!isGitRepository(pathname) || (await isLocalGitRepository(pathname))) {
     return false;
   }
 
   try {
     await runCommand(`cd ${pathname} && git fetch -p && git pull --all`);
-    return true;
-  } catch (error) {
-    return false;
-  }
+  } catch (error) {}
+
+  return true;
 }
 
 async function describePathname(pathname) {
@@ -81,13 +80,11 @@ function setupPromiseLoop(files, workspacePath) {
 
         if (descriptor.isFile) {
           output.push('[file]');
+        } else if (!descriptor.isGitRepository) {
+          output.push('[not a Git repo]');
         } else {
           if (descriptor.isUpdated) {
             output.push('[updated]');
-          }
-
-          if (!descriptor.isGitRepository) {
-            output.push('[not a Git repo]');
           }
 
           if (descriptor.isDirtyGitRepository) {
