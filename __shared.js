@@ -17,10 +17,8 @@ function runCommand(command, { verbose } = { verbose: false }) {
   });
 }
 
-const isOption = (arg) => /^\-/.test(arg);
-
 function getProcessOptions(argv) {
-  const options = argv.filter((arg) => isOption(arg));
+  const options = argv.filter((arg) => /^\-/.test(arg));
   return options.reduce((acc, option) => {
     const optionRaw = option.replace(/^\-*/, '');
     acc[optionRaw] = true;
