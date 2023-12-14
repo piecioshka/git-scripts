@@ -1,25 +1,27 @@
 #!/usr/bin/env bash
 
-echo -e "[x] Run: git config remote.origin.url\n"
+source __shared.sh
+
+print "[x] Run: git config remote.origin.url"
 git config remote.origin.url
 
-echo -e "\n[x] Run: git status -sb\n"
+print "[x] Run: git status -sb"
 git status -sb
 
-echo -e "\n[x] Run: git branch --all\n"
-git branch --all
+print "[x] Run: git branch --all -v"
+git branch --all -v
 
-echo -e "\n[x] Run: git tag -l\n"
+print "[x] Run: git tag -l"
 git tag -l
 
-echo -e "[x] Run: git pull\n"
-git pull
+print "[x] Run: git pull -v"
+git pull -v
 
-echo -e "\n[x] Run: git fetch -p\n"
-git fetch -p
+print "[x] Run: git fetch -pv"
+git fetch -pv
 
-echo -e "[x] Run: git push --all\n"
-git push
+print "[x] Run: git push --all -v"
+git push --all -v
 
-echo -e "\n[x] Run: git push --tags\n"
-git push --tags
+print "[x] Run: git push --tags -v"
+git push --tags -v

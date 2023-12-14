@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 
+source __shared.sh
+
 msg='Save current state'
 
-echo -e "[x] Run: git add ."
-git add .
+print "[x] Run: git add . -v"
+git add . -v
 
-echo -e "[x] Run: git commit -m '$msg'"
+print "[x] Run: git commit -m '$msg'"
 git commit -am "$msg"

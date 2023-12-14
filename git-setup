@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 
+source __shared.sh
+
 msg='Initialize project'
 
-echo -e "[x] Run: git init"
+print "[x] Run: git init"
 git init
 
-echo -e "[x] Run: git add ."
-git add .
+print "[x] Run: git add . -v"
+git add . -v
 
-echo -e "[x] Run: git commit -am '$msg'"
+print "[x] Run: git commit -am '$msg'"
 git commit -am "$msg"
 
-echo -e "[x] Run: git branch -m main"
+print "[x] Run: git branch -m main"
 git branch -m main

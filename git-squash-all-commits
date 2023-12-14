@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 
+source __shared.sh
+
 repo=$(git config remote.origin.url)
 
-echo -e "[x] Copying origin URL: ${repo}"
+print "[x] Copying origin URL: ${repo}"
 
-echo -e "[x] Run: rm -rf .git/"
+print "[x] Run: rm -rf .git/"
 rm -rf .git/
 
-echo -e "[x] Run: git setup"
-echo -e "■■■■■■■■■■■■■■■■■■"
+print "[x] Run: git setup"
+print "■■■■■■■■■■■■■■■■■■"
 git setup
 
-echo -e "[x] Run: git config remote.origin.url ${repo}\n"
+print "[x] Run: git config remote.origin.url ${repo}\n"
 git config remote.origin.url ${repo}
