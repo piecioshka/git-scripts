@@ -1,7 +1,0 @@
-> touch example-file.md
-> git save
-[x] Run: git add .
-[x] Run: git commit -m 'Save current state'
-[master 9d4dfcc] Save current state
- 1 file changed, 0 insertions(+), 0 deletions(-)
- create mode 100644 example-file.md

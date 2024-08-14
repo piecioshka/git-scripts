@@ -26,7 +26,6 @@ set -gx PATH $HOME/projects/git-scripts/ $PATH
 * [demo](demos/git-projects-status.example) `git projects-status [WORKSPACE_PATH=.]` — Display status for all projects in a workspace
 * [demo](demos/git-projects-update.example) `git projects-update [WORKSPACE_PATH=.]` — Update all projects in a workspace
 * [demo](demos/git-run-on-nested-repos.example) `git run-on-nested-repos COMMAND` — Run the command in all nested Git repositories
-* [demo](demos/git-save.example) `git save` — Create revision with a dummy commit message
 * [demo](demos/git-setup.example) `git setup` — Init repository and create initial revision
 * [demo](demos/git-squash-all-commits.example) `git squash-all-commits` — Remove `.git/` directory and setup initialize repo again
 * [demo](demos/git-sync.example) `git sync` — Check if local nad remote repo states are the same
