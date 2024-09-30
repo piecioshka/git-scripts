@@ -10,8 +10,8 @@ if [ -z "$message" ]; then
   exit 1
 fi
 
-printCommand "git status -sb"
-git status -sb
+printCommand "git status -s"
+git status -s
 
 printCommand "git add . -v"
 git add .
