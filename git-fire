@@ -1,21 +1,23 @@
-#!/usr/bin/env node
+#!/usr/bin/env bash
 
-const { runCommand } = require('./__shared');
+source __shared.sh
 
-const USAGE = `
-    Usage: git fire "MESSAGE"
-`;
-const message = (process.argv[2] || '').trim();
+message=$1
+usage='Usage: git fire "MESSAGE"'
 
-async function main() {
-  if (message.length === 0) {
-    console.log(USAGE);
-    return void process.exit(1);
-  }
+if [ -z "$message" ]; then
+  echo "$usage"
+  exit 1
+fi
 
-  await runCommand('git add .', { verbose: true });
-  await runCommand(`git commit -am "${message}"`, { verbose: true });
-  await runCommand('git push', { verbose: true });
-}
+printCommand "git status -sb"
+git status -sb
 
-main().catch(console.error);
+printCommand "git add . -v"
+git add .
+
+printCommand "git commit -am \"$message\""
+git commit -am "$message"
+
+printCommand "git push"
+git push
