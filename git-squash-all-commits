@@ -6,12 +6,12 @@ repo=$(git config remote.origin.url)
 
 print "[x] Copying origin URL: ${repo}"
 
-print "[x] Run: rm -rf .git/"
+printCommand "rm -rf .git/"
 rm -rf .git/
 
-print "[x] Run: git setup"
+printCommand "git setup"
 print "■■■■■■■■■■■■■■■■■■"
 git setup
 
-print "[x] Run: git config remote.origin.url ${repo}\n"
+printCommand "git config remote.origin.url ${repo}\n"
 git config remote.origin.url ${repo}

@@ -2,26 +2,26 @@
 
 source __shared.sh
 
-print "[x] Run: git config remote.origin.url"
+printCommand "git config remote.origin.url"
 git config remote.origin.url
 
-print "[x] Run: git status -sb"
+printCommand "git status -sb"
 git status -sb
 
-print "[x] Run: git branch --all -v"
+printCommand "git branch --all -v"
 git branch --all -v
 
-print "[x] Run: git tag -l"
+printCommand "git tag -l"
 git tag -l
 
-print "[x] Run: git pull -v"
+printCommand "git pull -v"
 git pull -v
 
-print "[x] Run: git fetch -pv"
+printCommand "git fetch -pv"
 git fetch -pv
 
-print "[x] Run: git push --all -v"
+printCommand "git push --all -v"
 git push --all -v
 
-print "[x] Run: git push --tags -v"
+printCommand "git push --tags -v"
 git push --tags -v

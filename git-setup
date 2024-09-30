@@ -4,14 +4,14 @@ source __shared.sh
 
 msg='Initialize project'
 
-print "[x] Run: git init"
+printCommand "git init"
 git init
 
-print "[x] Run: git add . -v"
+printCommand "git add . -v"
 git add . -v
 
-print "[x] Run: git commit -am '$msg'"
+printCommand "git commit -am '$msg'"
 git commit -am "$msg"
 
-print "[x] Run: git branch -m main"
+printCommand "git branch -m main"
 git branch -m main
