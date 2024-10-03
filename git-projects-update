@@ -10,6 +10,8 @@ const {
   runCommand,
 } = require('./__shared');
 
+const { red, green, yellow } = require('./__colors');
+
 async function isLocalGitRepository(pathname) {
   if (!isGitRepository(pathname)) {
     return false;
@@ -37,7 +39,9 @@ async function isDirtyGitRepository(pathname) {
     return Boolean(Number(output));
   } catch (error) {
     if (error) {
-      console.log(`[error] (dirty git repository) ${path.basename(pathname)}`);
+      console.log(
+        `${red('[error]')} (dirty git repository) ${path.basename(pathname)}`,
+      );
       console.error(error);
     }
     return false;
@@ -79,16 +83,16 @@ function setupPromiseLoop(files, workspacePath) {
         const output = [];
 
         if (descriptor.isFile) {
-          output.push('[file]');
+          output.push(yellow('[file]'));
         } else if (!descriptor.isGitRepository) {
           output.push('[not a Git repo]');
         } else {
           if (descriptor.isDirtyGitRepository) {
-            output.push('[dirty]');
+            output.push(yellow('[dirty]'));
           }
 
           if (descriptor.isUpdated) {
-            output.push('[updated]');
+            output.push(green('[updated]'));
           }
 
           if (descriptor.isLocalGitRepository) {
