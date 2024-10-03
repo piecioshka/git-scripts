@@ -14,10 +14,13 @@ printCommand "git status -s"
 git status -s
 
 printCommand "git add . -v"
-git add .
+git add . -v
 
 printCommand "git commit -am \"$message\""
 git commit -am "$message"
 
-printCommand "git push"
-git push
+printCommand "git push --all -v"
+git push --all -v
+
+printCommand "git push --tags -v"
+git push --tags -v

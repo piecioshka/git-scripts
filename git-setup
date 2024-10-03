@@ -2,7 +2,7 @@
 
 source __shared.sh
 
-msg='Initialize project'
+message='Initialize project'
 
 printCommand "git init"
 git init
@@ -10,8 +10,8 @@ git init
 printCommand "git add . -v"
 git add . -v
 
-printCommand "git commit -am '$msg'"
-git commit -am "$msg"
+printCommand "git commit -am \"$message\""
+git commit -am "$message"
 
 printCommand "git branch -m main"
 git branch -m main

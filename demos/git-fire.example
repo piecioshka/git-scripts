@@ -1,5 +1,5 @@
 > git fire "Fire 🔥"
-[x] Run: git add .
+[x] Run: git add . -v
 [x] Run: git commit -am 'Fire 🔥'
 
 [main 315db23] Fire 🔥
