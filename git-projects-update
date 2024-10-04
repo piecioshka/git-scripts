@@ -10,7 +10,7 @@ const {
   runCommand,
 } = require('./__shared');
 
-const { red, green, yellow } = require('./__colors');
+const { red, green, yellow, magenta } = require('./__colors');
 
 async function isLocalGitRepository(pathname) {
   if (!isGitRepository(pathname)) {
@@ -18,9 +18,9 @@ async function isLocalGitRepository(pathname) {
   }
 
   try {
-    const output = await runCommand(
-      `cd ${pathname} && git config remote.origin.url`,
-    );
+    const output = await runCommand(`git config remote.origin.url`, {
+      cwd: pathname,
+    });
     return output.length === 0;
   } catch (error) {
     return true;
@@ -34,7 +34,8 @@ async function isDirtyGitRepository(pathname) {
 
   try {
     const output = await runCommand(
-      `cd ${pathname} && git status --porcelain 2>/dev/null | wc -l`,
+      `git status --porcelain 2>/dev/null | wc -l`,
+      { cwd: pathname },
     );
     return Boolean(Number(output));
   } catch (error) {
@@ -54,10 +55,18 @@ async function updateGitRepository(pathname) {
   }
 
   try {
-    await runCommand(`cd ${pathname} && git fetch -p && git pull --all`);
+    await runCommand(`git fetch -p && git pull --all`, { cwd: pathname });
   } catch (error) {}
 
   return true;
+}
+
+async function getGitBranchName(pathname) {
+  if (!isGitRepository(pathname)) {
+    return false;
+  }
+
+  return runCommand('git branch --show-current', { cwd: pathname });
 }
 
 async function describePathname(pathname) {
@@ -68,6 +77,7 @@ async function describePathname(pathname) {
   result.isLocalGitRepository = await isLocalGitRepository(pathname);
   result.isDirtyGitRepository = await isDirtyGitRepository(pathname);
   result.isUpdated = await updateGitRepository(pathname);
+  result.branchName = await getGitBranchName(pathname);
   return result;
 }
 
@@ -101,6 +111,11 @@ function setupPromiseLoop(files, workspacePath) {
         }
 
         output.push(path.basename(pathname));
+
+        if (descriptor.isGitRepository && descriptor.branchName) {
+          output.push(magenta(`[${descriptor.branchName}]`));
+        }
+
         console.log(output.join(' '));
       })
       .catch((err) => {
