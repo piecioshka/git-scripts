@@ -7,6 +7,8 @@ const {
   runCommand,
 } = require('./__shared');
 
+const { blue } = require('./__colors');
+
 const command = process.argv[2];
 const maxLevels = 5;
 const USAGE = `
@@ -34,14 +36,12 @@ async function enter(currentPath, { basePath, baseLevel }) {
     if (isDirectory(fullFileName)) {
       const currentLevel = getLevelForPath(fullFileName);
       const deep = currentLevel - baseLevel;
-      const directory = `### .${fullFileName.replace(basePath, '')}`;
+      const directory = blue(`==> .${fullFileName.replace(basePath, '')}`);
 
       if (isGitRepository(fullFileName)) {
         console.log(`${directory} > ${command}`);
         try {
-          const results = await runCommand(
-            `cd "${fullFileName}" && ${command}`,
-          );
+          const results = await runCommand(command, { cwd: fullFileName });
           if (results) {
             console.log(`${results}`);
           }
