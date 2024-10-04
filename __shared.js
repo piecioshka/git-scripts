@@ -2,12 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const exec = require('child_process').exec;
 
-function runCommand(command, { verbose } = { verbose: false }) {
-  if (verbose) {
-    console.log(`[x] Run: ${command}`);
-  }
+function printCommand(command) {
+  // console.log(`[x] Run: ${command}`);
+}
+
+function runCommand(command, { cwd } = { cwd: '.' }) {
+  printCommand(command);
   return new Promise((resolve, reject) => {
-    exec(command, (err, stdout, stderr) => {
+    exec(command, { cwd }, (err, stdout, stderr) => {
       if (err || stderr) {
         // console.debug('[error]', err || stderr);
         return void reject(err || stderr);
@@ -48,12 +50,12 @@ function isGitRepository(pathname) {
   return isDirectory(path.resolve(pathname, '.git'));
 }
 
-const pad2Zeros = (value) => String(value).padStart(2, '0');
-const pad5 = (value) => String(value).padStart(5);
-
 function isHidden(dirName) {
   return /^\.(.*)$/.test(dirName);
 }
+
+const pad2Zeros = (value) => String(value).padStart(2, '0');
+const pad5 = (value) => String(value).padStart(5);
 
 function getFilesAndDirectories(directoryPath) {
   return fs.readdirSync(directoryPath);
