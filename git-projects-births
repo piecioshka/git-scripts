@@ -13,7 +13,7 @@ const CMD_FIRST_COMMIT = `git log --reverse | sed -n -e '1,5p'`;
 const CMD_GET_DATE = `${CMD_FIRST_COMMIT} | grep -v diff | head -n3 | tail -n1 | cut -f4-9 -d ' '`;
 
 async function getInitialDate(pathname) {
-  const date = await runCommand(`cd ${pathname} && ${CMD_GET_DATE}`);
+  const date = await runCommand(CMD_GET_DATE, { cwd: pathname });
   return new Date(date);
 }
 
