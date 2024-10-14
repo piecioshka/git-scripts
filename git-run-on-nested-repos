@@ -7,7 +7,7 @@ const {
   runCommand,
 } = require('./__shared');
 
-const { blue } = require('./__colors');
+const { blue, green } = require('./__colors');
 
 const command = process.argv[2];
 const maxLevels = 5;
@@ -24,8 +24,8 @@ if (!command) {
   process.exit(1);
 }
 
-function getLevelForPath(path) {
-  return path.split('/').length;
+function getLevelForPath(pathname) {
+  return pathname.split('/').length;
 }
 
 async function enter(currentPath, { basePath, baseLevel }) {
@@ -36,10 +36,10 @@ async function enter(currentPath, { basePath, baseLevel }) {
     if (isDirectory(fullFileName)) {
       const currentLevel = getLevelForPath(fullFileName);
       const deep = currentLevel - baseLevel;
-      const directory = blue(`==> .${fullFileName.replace(basePath, '')}`);
+      const directory = `==> .${green(fullFileName.replace(basePath, ''))}`;
 
       if (isGitRepository(fullFileName)) {
-        console.log(`${directory} > ${command}`);
+        console.log(`${directory} ${blue('>')} ${command}`);
         try {
           const results = await runCommand(command, { cwd: fullFileName });
           if (results) {
