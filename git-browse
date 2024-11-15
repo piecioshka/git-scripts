@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+link=$(git config remote.origin.url)
+
+# Replace ":" to "/"
+link="${link/://}"
+
+# Replace "git@" by "https://"
+link="${link/git@/https://}"
+
+# Remove last ".git"
+link="${link/.git/}"
+
+open $link
