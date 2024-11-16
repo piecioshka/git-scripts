@@ -34,6 +34,7 @@ set -gx PATH $HOME/projects/git-scripts/ $PATH
 
 ## Related projects
 
+* https://github.com/aarek/git-tools
 * https://github.com/ddollar/git-utils
 * https://github.com/jwiegley/git-scripts
 * https://github.com/knadh/git-bars
