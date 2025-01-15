@@ -4,24 +4,28 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/__shared.sh"
 
 message=$1
-usage='Usage: git fire "MESSAGE"'
 
 if [ -z "$message" ]; then
-  echo "$usage"
+  echo "Usage: $(basename $0) <message>"
   exit 1
 fi
 
-printCommand "git status -s"
+__print_command "git status -s"
 git status -s
+echo ""
 
-printCommand "git add . -v"
+__print_command "git add . -v"
 git add . -v
+echo ""
 
-printCommand "git commit -am \"$message\""
+__print_command "git commit -am \"$message\""
 git commit -am "$message"
+echo ""
 
-printCommand "git push --all -v"
+__print_command "git push --all -v"
 git push --all -v
+echo ""
 
-printCommand "git push --tags -v"
+__print_command "git push --tags -v"
 git push --tags -v
+echo ""

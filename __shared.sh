@@ -1,13 +1,21 @@
 #!/usr/bin/env bash
 
-# https://colors.sh/
-NO_FORMAT="\033[0m"
-C_GREY46="\033[38;5;243m"
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$script_dir/__colors.sh"
 
-function print {
-  echo -e "\n${C_GREY46}$1${NO_FORMAT}\n"
+function __print_action {
+  echo -e "${__COLOR_BLUE_LIGHT}==> ${__COLOR_GREEN}[x]${__COLOR_BLUE} # ${__COLOR_RESET}${1}"
 }
 
-function printCommand {
-  print "[x] Run: $1"
+function __print_command {
+  command="${1}"
+  current_dir="${2:-$(pwd)}"
+
+  if [ -z "$command" ]; then
+    echo "Usage: __print_command <command> [current_dir=$(pwd)]"
+    exit 1
+  fi
+
+  folder_name=$(basename $current_dir)
+  echo -e "${__COLOR_BLUE_LIGHT}==> ${__COLOR_GREEN}${folder_name}${__COLOR_BLUE} > ${__COLOR_RESET}$command"
 }

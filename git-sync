@@ -3,26 +3,34 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/__shared.sh"
 
-printCommand "git config remote.origin.url"
+__print_command "git config remote.origin.url"
 git config remote.origin.url
+echo ""
 
-printCommand "git status -sb"
+__print_command "git status -sb"
 git status -sb
+echo ""
 
-printCommand "git branch --all -v"
+__print_command "git branch --all -v"
 git branch --all -v
+echo ""
 
-printCommand "git tag -l"
+__print_command "git tag -l"
 git tag -l
+echo ""
 
-printCommand "git pull -v"
+__print_command "git pull -v"
 git pull -v
+echo ""
 
-printCommand "git fetch -pv"
+__print_command "git fetch -pv"
 git fetch -pv
+echo ""
 
-printCommand "git push --all -v"
+__print_command "git push --all -v"
 git push --all -v
+echo ""
 
-printCommand "git push --tags -v"
+__print_command "git push --tags -v"
 git push --tags -v
+echo ""

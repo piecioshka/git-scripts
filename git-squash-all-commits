@@ -5,14 +5,17 @@ source "$script_dir/__shared.sh"
 
 repo=$(git config remote.origin.url)
 
-print "[x] Copying origin URL: ${repo}"
+if [ -n "${repo}" ]; then
+  __print_action "Copying origin URL: ${repo}"
+fi
 
-printCommand "rm -rf .git/"
+__print_command "rm -rf .git/"
 rm -rf .git/
 
-printCommand "git setup"
-print "■■■■■■■■■■■■■■■■■■"
+__print_command "git setup (group of commands)"
 git setup
 
-printCommand "git config remote.origin.url ${repo}\n"
-git config remote.origin.url ${repo}
+if [ -n "$repo" ]; then
+  __print_command "git config remote.origin.url ${repo}\n"
+  git config remote.origin.url ${repo}
+fi

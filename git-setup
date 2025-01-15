@@ -5,14 +5,18 @@ source "$script_dir/__shared.sh"
 
 message='Initialize project'
 
-printCommand "git init"
+__print_command "git init"
 git init
+echo ""
 
-printCommand "git add . -v"
+__print_command "git add . -v"
 git add . -v
+echo ""
 
-printCommand "git commit -am \"$message\""
+__print_command "git commit -am \"$message\""
 git commit -am "$message"
+echo ""
 
-printCommand "git branch -m main"
+__print_command "git branch -m main"
 git branch -m main
+echo ""

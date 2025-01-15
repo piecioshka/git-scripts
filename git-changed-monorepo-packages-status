@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+folder=${1:-packages}
+
+echo $folder;
+
+git --no-pager diff master.. --name-only |
+  grep \"^packages/\" |
+  cut -f2 -d/ |
+  sort |
+  uniq |
+  xargs echo;

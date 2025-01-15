@@ -2,12 +2,12 @@ const fs = require('fs');
 const path = require('path');
 const exec = require('child_process').exec;
 
-function printCommand(command) {
+function __print_command(command) {
   // console.log(`[x] Run: ${command}`);
 }
 
 function runCommand(command, { cwd } = { cwd: '.' }) {
-  printCommand(command);
+  __print_command(command);
   return new Promise((resolve, reject) => {
     exec(command, { cwd }, (err, stdout, stderr) => {
       if (err || stderr) {
