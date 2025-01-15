@@ -17,6 +17,6 @@
 
 > git commit -m "Add hello world" --quiet
 
-> git changed-packages --main
+> git changed-monorepo-packages --main
 List of packages with changed files:
 - utils

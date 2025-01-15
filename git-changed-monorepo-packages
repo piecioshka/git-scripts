@@ -4,13 +4,13 @@ const process = require('process');
 const { runCommand, getProcessOptions } = require('./__shared');
 
 const USAGE = `
-    Usage: git changed-packages [--oneline] [--main]
+    Usage: git changed-monorepo-packages [--oneline] [--main]
 
     Examples:
 
-        $ git changed-packages
-        $ git changed-packages --oneline
-        $ git changed-packages --main
+        $ git changed-monorepo-packages
+        $ git changed-monorepo-packages --oneline
+        $ git changed-monorepo-packages --main
 `;
 
 const GIT_DIFF_BRANCH = (branch = 'master') =>
