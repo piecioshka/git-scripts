@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+# Git refresh tags (remove all local tags and fetch from origin).
+git tag -l | xargs git tag -d
+git fetch
