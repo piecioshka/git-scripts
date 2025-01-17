@@ -1,53 +1,35 @@
-#!/usr/bin/env node
+#!/bin/bash
 
-const child_process = require('child_process');
-const process = require('process');
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$script_dir/__shared.sh"
 
-const fileName = process.argv[2] || '';
-const exec = child_process.exec;
-const execSync = child_process.execSync;
-const USAGE = `
-    Usage: git zip PACKAGE_NAME
-`;
+fileName=$1
 
-function main(packageName) {
-  if (!packageName.length) {
-    console.log(USAGE);
-    return void process.exit(1);
-  }
+if [ -z "$fileName" ]; then
+  echo "Usage: $(basename $0) <path/to/package.zip>"
+  exit 1
+fi
 
-  console.log(`[x] Verify if repository has no changes`);
+__print_title "Verify if repository has no changes"
 
-  exec('git status --untracked-files=no -sb', (err, stdout, stderr) => {
-    const list = stdout.split('\n');
+status=$(git status --untracked-files=no -sb)
+lines=$(echo "$status" | wc -l)
 
-    if (list.length === 2) {
-      console.log('[x] No changes, building from clean repository');
-      execSync(`git archive --format zip --output "${packageName}" HEAD`, {
-        stdio: [0, 1, 2],
-      });
-      console.log(`[x] Package created: "${packageName}"`);
-    } else {
-      console.log(
-        '[x] Uncommitted changes, building from modified repository\n',
-      );
-      execSync('git status --untracked-files=no -s', { stdio: [0, 1, 2] });
-      console.log('');
+if [ "$lines" -eq 1 ]; then
+  __print_title "No changes, building from clean repository"
+  git archive --format zip --output "$fileName" HEAD
+  __print_title "Package created: \"$fileName\""
+else
+  __print_title "Uncommitted changes, building from modified repository"
+  git status --untracked-files=no -s
+  echo ""
 
-      exec('git stash create', (err2, stdout, stderr) => {
-        if (err2) {
-          console.log('Caught an Error');
-          console.error(err2);
-          return;
-        }
-        execSync(
-          `git archive --format zip --output "${packageName}" ${stdout}`,
-          { stdio: [0, 1, 2] },
-        );
-        console.log(`[x] Package created: "${packageName}"`);
-      });
-    }
-  });
-}
-
-main(fileName);
+  stash=$(git stash create)
+  echo "stash: '$stash'"
+  if [ -z "$stash" ]; then
+    echo "Caught an Error"
+    exit 1
+  fi
+  git archive --format zip --output "$fileName" "$stash"
+  __print_title "Package created: \"$fileName\""
+fi
