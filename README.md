@@ -29,6 +29,7 @@ set -gx PATH $HOME/projects/git-scripts/ $PATH
 - `git projects-status [path=./]` — Display status for all projects in a workspace [[demo](demos/git-projects-status.example)]
 - `git projects-update [path=./]` — Update all projects in a workspace [[demo](demos/git-projects-update.example)]
 - `git publish-branch` — Publish current branch to the origin and set upstream
+- `git repo` — Display a repository URL (`remote.origin.url`)
 - `git run-on-nested-repos COMMAND` — Run the command in all nested Git repositories [[demo](demos/git-run-on-nested-repos.example)]
 - `git setup` — Init repository and create initial revision [[demo](demos/git-setup.example)]
 - `git squash-all-commits` — Remove `.git/` directory and setup initialize repo again [[demo](demos/git-squash-all-commits.example)]

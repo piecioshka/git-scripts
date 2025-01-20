@@ -3,7 +3,7 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/__shared.sh"
 
-fileName=$1
+fileName=${1}
 
 if [ -z "$fileName" ]; then
   echo "Usage: $(basename $0) <path/to/package.zip>"
