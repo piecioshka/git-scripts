@@ -23,3 +23,9 @@ function __print_command {
   folder_name=$(basename $current_dir)
   echo -e "${__COLOR_BLUE_LIGHT}==> ${__COLOR_GREEN}${folder_name}${__COLOR_BLUE} > ${__COLOR_RESET}$command"
 }
+
+function __print_command_and_eval {
+  __print_command "$1"
+  eval "$1"
+  echo ""
+}

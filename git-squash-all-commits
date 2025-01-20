@@ -9,13 +9,9 @@ if [ -n "${repo}" ]; then
   __print_action "Copying origin URL: ${repo}"
 fi
 
-__print_command "rm -rf .git/"
-rm -rf .git/
-
-__print_command "git setup (group of commands)"
-git setup
+__print_command_and_eval "rm -rfv .git/"
+__print_command_and_eval "git setup"
 
 if [ -n "$repo" ]; then
-  __print_command "git config remote.origin.url ${repo}\n"
-  git config remote.origin.url ${repo}
+  __print_command_and_eval "git config remote.origin.url ${repo}"
 fi

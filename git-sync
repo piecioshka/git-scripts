@@ -3,34 +3,13 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/__shared.sh"
 
-__print_command "git config remote.origin.url"
-git config remote.origin.url
-echo ""
+verboseEnabled=$([[ $1 == "--verbose" ]] && echo true || echo false)
 
-__print_command "git status -sb"
-git status -sb
-echo ""
-
-__print_command "git branch --all -v"
-git branch --all -v
-echo ""
-
-__print_command "git tag -l"
-git tag -l
-echo ""
-
-__print_command "git pull -v"
-git pull -v
-echo ""
-
-__print_command "git fetch -pv"
-git fetch -pv
-echo ""
-
-__print_command "git push --all -v"
-git push --all -v
-echo ""
-
-__print_command "git push --tags -v"
-git push --tags -v
-echo ""
+$verboseEnabled && __print_command_and_eval "git config remote.origin.url"
+$verboseEnabled && __print_command_and_eval "git status -sb"
+$verboseEnabled && __print_command_and_eval "git branch --all -v"
+$verboseEnabled && __print_command_and_eval "git tag -l"
+__print_command_and_eval "git pull -v"
+__print_command_and_eval "git fetch -pv"
+__print_command_and_eval "git push --all -v"
+__print_command_and_eval "git push --tags -v"

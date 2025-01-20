@@ -10,22 +10,8 @@ if [ -z "$message" ]; then
   exit 1
 fi
 
-__print_command "git status -s"
-git status -s
-echo ""
-
-__print_command "git add . -v"
-git add . -v
-echo ""
-
-__print_command "git commit -am \"$message\""
-git commit -am "$message"
-echo ""
-
-__print_command "git push --all -v"
-git push --all -v
-echo ""
-
-__print_command "git push --tags -v"
-git push --tags -v
-echo ""
+__print_command_and_eval "git status -s"
+__print_command_and_eval "git add . -v"
+__print_command_and_eval "git commit -am "$message""
+__print_command_and_eval "git push --all -v"
+__print_command_and_eval "git push --tags -v"

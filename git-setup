@@ -3,20 +3,7 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/__shared.sh"
 
-message='Initialize project'
-
-__print_command "git init"
-git init
-echo ""
-
-__print_command "git add . -v"
-git add . -v
-echo ""
-
-__print_command "git commit -am \"$message\""
-git commit -am "$message"
-echo ""
-
-__print_command "git branch -m main"
-git branch -m main
-echo ""
+__print_command_and_eval "git init"
+__print_command_and_eval "git add . -v"
+__print_command_and_eval "git commit -am 'Initialize project'"
+__print_command_and_eval "git branch -m main"
