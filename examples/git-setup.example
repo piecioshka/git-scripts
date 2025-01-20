@@ -1,10 +1,12 @@
-> touch example-file.md
-> git setup
-[x] Run: git init
+/app/ > git setup
+==> app > git init
 Initialized empty Git repository in /private/tmp/test/.git/
-[x] Run: git add . -v
-[x] Run: git commit -am 'Initialize project'
+
+==> app > git add . -v
+
+==> app > git commit -am 'Initialize project'
 [master (root-commit) c2d8b89] Initialize project
  1 file changed, 0 insertions(+), 0 deletions(-)
  create mode 100644 example-file.md
-[x] Run: git branch -m main
+
+==> app > git branch -m main

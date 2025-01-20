@@ -1,4 +1,0 @@
-> git zip ../repository.zip
-[x] Verify if repository has no changes
-[x] No changes, building from clean repository
-[x] Package created: "../repository.zip"

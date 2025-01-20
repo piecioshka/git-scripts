@@ -1,11 +1,11 @@
-> git fire "Fire 🔥"
-[x] Run: git add . -v
-[x] Run: git commit -am 'Fire 🔥'
+/app/ > git fire "Fire 🔥"
+==> app > git add . -v
+==> app > git commit -am 'Fire 🔥'
 
 [main 315db23] Fire 🔥
  1 file changed, 1 insertion(+)
 
-[x] Run: git push
+==> app > git push
 
 Enumerating objects: 8, done.
 Counting objects: 100% (8/8), done.

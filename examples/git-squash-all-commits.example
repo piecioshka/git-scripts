@@ -1,0 +1,15 @@
+/app/ > git squash-all-commits
+==> app > rm -rfv .git/
+
+==> app > git setup
+==> app > git init
+Initialized empty Git repository in /private/tmp/test/.git/
+
+==> app > git add . -v
+
+==> app > git commit -am 'Initialize project'
+[master (root-commit) b92ea3d] Initialize project
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+ create mode 100644 example-file.md
+
+==> app > git branch -m main

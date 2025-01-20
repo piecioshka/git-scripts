@@ -1,0 +1,11 @@
+/app/ > git sync
+==> app > git pull -v
+Already up to date.
+
+==> app > git fetch -pv
+
+==> app > git push --all -v
+Everything up-to-date
+
+==> app > git push --tags -v
+Everything up-to-date

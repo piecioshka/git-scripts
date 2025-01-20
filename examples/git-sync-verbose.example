@@ -1,0 +1,22 @@
+/app/ > git sync --verbose
+==> app > git repo
+WARNING: is a local-only Git repo (remote.origin not detected)
+
+==> app > git status -sb
+## main
+
+==> app > git branch --all -v
+* main 01ed7e0 Initialize project
+
+==> app > git tag -l
+
+==> app > git pull -v
+Already up to date.
+
+==> app > git fetch -pv
+
+==> app > git push --all -v
+Everything up-to-date
+
+==> app > git push --tags -v
+Everything up-to-date

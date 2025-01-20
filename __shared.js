@@ -3,7 +3,7 @@ const path = require('path');
 const exec = require('child_process').exec;
 
 function __print_command(command) {
-  // console.log(`[x] Run: ${command}`);
+  // console.log(`==> ${command}`);
 }
 
 function runCommand(command, { cwd } = { cwd: '.' }) {
