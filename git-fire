@@ -3,7 +3,7 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/__shared.sh"
 
-message=${1}
+message="${1}"
 
 if [ -z "$message" ]; then
   echo "Usage: $(basename $0) <message>"
