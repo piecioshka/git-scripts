@@ -12,6 +12,6 @@ fi
 
 __print_command_and_eval "git status -s"
 __print_command_and_eval "git add . -v"
-__print_command_and_eval "git commit -am "$message""
+__print_command_and_eval "git commit -am \"$message\""
 __print_command_and_eval "git push --all -v"
 __print_command_and_eval "git push --tags -v"
