@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+set -e
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$script_dir/__shared.sh"
+
+repos=$(gh repo list --limit 1000 --json name,sshUrl,defaultBranchRef | jq -r '.[] | select(.defaultBranchRef.name == "master") | .sshUrl')
+
+size=$(echo "$repos" | wc -l | tr -d '[:space:]')
+i=0
+
+for repo in $repos; do
+  i=$((i+1))
+  prefix="[${__COLOR_RED}$i${__COLOR_RESET}/${__COLOR_CYAN}$size${__COLOR_RESET}]"
+  __print_action "$prefix Cloning ${__COLOR_YELLOW}${__COLOR_UNDERLINED}$repo${__COLOR_RESET}"
+  git clone "$repo"
+  repo_name=$(basename "$repo" .git)
+  cd "$repo_name"
+  __print_command_and_eval "git branch -m main"
+  __print_command_and_eval "git publish-branch"
+  __print_command_and_eval "gh repo edit --default-branch main"
+  __print_command_and_eval "git delete-branch master"
+  cd ..
+  rm -rf "$repo_name"
+done

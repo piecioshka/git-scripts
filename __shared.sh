@@ -10,6 +10,7 @@ function __print_warning {
 function __print_error {
   echo -e "${__COLOR_RED}${1}${__COLOR_RESET}"
 }
+
 function __print_title {
   echo -e "${__COLOR_BLUE_LIGHT}==> ${1}${__COLOR_RESET}"
 }
