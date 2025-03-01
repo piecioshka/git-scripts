@@ -35,6 +35,7 @@ set -gx PATH $HOME/projects/git-scripts/ $PATH
 - `git squash-all-commits` — Remove `.git/` directory and setup initialize repo again [[example](examples/git-squash-all-commits.example)]
 - `git sync` — Check if local nad remote repo states are the same [[example](examples/git-sync.example)] [[example-2](examples/git-sync-verbose.example)]
 - `git tags-refresh` — Refresh tags in the current repository
+- `git update-default-branch-master-to-main` — Change default branch from `master` to `main`
 - `git user` — Display current user [[example](examples/git-user.example)]
 - `git www` — Open current repository in the browser
 - `git zip <name>` — Extract archive from the current repository [[example](examples/git-zip.example)]

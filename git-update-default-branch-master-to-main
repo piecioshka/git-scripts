@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+set -e
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$script_dir/__shared.sh"
+
+git sync
+__print_command_and_eval "git branch -m main"
+__print_command_and_eval "git publish-branch"
+__print_command_and_eval "gh repo edit --default-branch main"
+__print_command_and_eval "git delete-branch master"
