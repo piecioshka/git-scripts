@@ -5,11 +5,21 @@ set -e
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/__shared.sh"
 
-repos=$(gh repo list --limit 1000 --json name,sshUrl,defaultBranchRef | jq -r '.[] | select(.defaultBranchRef.name == "master") | .sshUrl')
+repos=$(gh repo list --limit 1000 --json name,isArchived,sshUrl,defaultBranchRef | jq -r '.[] | select(.defaultBranchRef.name == "master" and .isArchived == false) | .sshUrl')
 
-size=$(echo "$repos" | wc -l | tr -d '[:space:]')
+count() {
+  if [ -z "$1" ]; then
+    echo 0
+  else
+    echo "$1" | wc -l | tr -d '[:space:]'
+  fi
+}
+
+size=$(count "$repos")
+
+__print_title "Active repos: ${__COLOR_CYAN}$size${__COLOR_RESET}"
+
 i=0
-
 for repo in $repos; do
   i=$((i+1))
   prefix="[${__COLOR_RED}$i${__COLOR_RESET}/${__COLOR_CYAN}$size${__COLOR_RESET}]"
@@ -23,4 +33,16 @@ for repo in $repos; do
   __print_command_and_eval "git delete-branch master"
   cd ..
   rm -rf "$repo_name"
+done
+
+echo "----------------------------------------"
+
+archive_repos=$(gh repo list --limit 1000 --json name,isArchived | jq -r '.[] | select(.isArchived == true) | .name')
+
+size=$(count "$archive_repos")
+__print_title "Archived repos: ${__COLOR_CYAN}$size${__COLOR_RESET}"
+echo "Please change a default branch manually for the following repositories:"
+
+for repo in $archive_repos; do
+  echo "- $repo"
 done
