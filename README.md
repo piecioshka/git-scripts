@@ -23,6 +23,7 @@ set -gx PATH $HOME/projects/git-scripts/ $PATH
 - `git browse` — Open current repository in the browser
 - `git changed-monorepo-packages [--oneline] [--main]` — Display changed packages [[example](examples/git-changed-monorepo-packages.example)]
 - `git changed-monorepo-packages-status <folder_with_packages>` — Display packages status
+- `git-clone-path` - Clone repository to the specified path
 - `git fire <message>` — Create commit with all changes and push to the origin [[example](examples/git-fire.example)]
 - `git open` — Open current repository in the browser
 - `git projects-births [path=./]` — Display when projects start for the whole workspace [[example](examples/git-projects-births.example)]

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$script_dir/__shared.sh"
+
+repository_url="${1}"
+path_to_folder_or_file="${2}"
+
+if [ -z "$repository_url" ] || [ -z "$path_to_folder_or_file" ]; then
+  echo "Usage: $(basename $0) <repository_url> <path/to/folder-or-file>"
+  exit 1
+fi
+
+repository_name=$(basename $path_to_folder_or_file)
+
+__print_command_and_eval "git clone --no-checkout $repository_url $repository_name"
+__print_command_and_eval "cd $repository_name"
+__print_command_and_eval "git sparse-checkout init --cone"
+__print_command_and_eval "git sparse-checkout set $path_to_folder_or_file"
+__print_command_and_eval "git checkout"
