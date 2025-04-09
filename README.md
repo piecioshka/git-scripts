@@ -15,7 +15,7 @@ export PATH="$HOME/projects/git-scripts/:$PATH"
 set -gx PATH $HOME/projects/git-scripts/ $PATH
 ```
 
-**TIP**: When you modify shell configs, please restart the terminal to apply new settings.
+**TIP**: After changing the shell configuration, restart the terminal to apply the new settings.
 
 ## Commands
 
