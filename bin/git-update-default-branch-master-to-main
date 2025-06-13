@@ -3,7 +3,7 @@
 set -e
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$script_dir/__shared.sh"
+source "$script_dir/../shared/__shared.sh"
 
 git sync
 __print_command_and_eval "git branch -m main"

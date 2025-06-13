@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const process = require('process');
-const { runCommand, pad2Zeros, pad5 } = require('./__shared');
+const { runCommand, pad2Zeros, pad5 } = require('../shared/__shared');
 
 const USAGE = `
     Usage: git bars COMMITTER_NAME PERIOD

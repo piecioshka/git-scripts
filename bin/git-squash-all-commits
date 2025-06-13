@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "$script_dir/__shared.sh"
+source "$script_dir/../shared/__shared.sh"
 
 repo=$(git config remote.origin.url)
 

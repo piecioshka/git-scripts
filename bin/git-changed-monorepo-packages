@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const process = require('process');
-const { runCommand, getProcessOptions } = require('./__shared');
+const { runCommand, getProcessOptions } = require('../shared/__shared');
 
 const USAGE = `
     Usage: git changed-monorepo-packages [--oneline] [--main]

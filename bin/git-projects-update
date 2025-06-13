@@ -8,9 +8,9 @@ const {
   isGitRepository,
   getFilesAndDirectories,
   runCommand,
-} = require('./__shared');
+} = require('../shared/__shared');
 
-const { red, green, yellow, magenta } = require('./__colors');
+const { red, green, yellow, magenta } = require('../shared/__colors');
 
 async function isLocalGitRepository(pathname) {
   if (!isGitRepository(pathname)) {

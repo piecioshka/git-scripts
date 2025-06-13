@@ -5,9 +5,9 @@ const {
   isGitRepository,
   getDirectories,
   runCommand,
-} = require('./__shared');
+} = require('../shared/__shared');
 
-const { blue, green } = require('./__colors');
+const { blue, green } = require('../shared/__colors');
 
 const command = process.argv[2];
 const maxLevels = 5;

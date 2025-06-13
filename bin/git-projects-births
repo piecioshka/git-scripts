@@ -7,7 +7,7 @@ const {
   getFilesAndDirectories,
   formatDate,
   runCommand,
-} = require('./__shared');
+} = require('../shared/__shared');
 
 const CMD_FIRST_COMMIT = `git log --reverse | sed -n -e '1,5p'`;
 const CMD_GET_DATE = `${CMD_FIRST_COMMIT} | grep -v diff | head -n3 | tail -n1 | cut -f4-9 -d ' '`;

@@ -8,7 +8,7 @@ const {
   isHidden,
   formatDate,
   getFilesAndDirectories,
-} = require('./__shared');
+} = require('../shared/__shared');
 
 // ---------------------------------------------------------------------------------------------------------------------
 
