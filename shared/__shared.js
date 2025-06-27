@@ -17,15 +17,6 @@ function runCommand(command, { cwd } = { cwd: "." }) {
   });
 }
 
-function getProcessOptions(argv) {
-  const options = argv.filter((arg) => /^\-/.test(arg));
-  return options.reduce((acc, option) => {
-    const optionRaw = option.replace(/^\-*/, "");
-    acc[optionRaw] = true;
-    return acc;
-  }, {});
-}
-
 const pad2Zeros = (value) => String(value).padStart(2, "0");
 const pad5 = (value) => String(value).padStart(5);
 
@@ -36,10 +27,18 @@ function formatDate(date) {
   return `${year}-${month}-${day}`;
 }
 
+function sortBy(cb, ascending = true) {
+  return (a, b) => {
+    const valueA = cb(a);
+    const valueB = cb(b);
+    return ascending ? valueA - valueB : valueB - valueA;
+  };
+}
+
 module.exports = {
   runCommand,
-  getProcessOptions,
   pad2Zeros,
   pad5,
   formatDate,
+  sortBy,
 };
