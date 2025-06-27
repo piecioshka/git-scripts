@@ -10,11 +10,11 @@ function runCommand(command, { cwd } = { cwd: '.' }) {
   __print_command(command);
   return new Promise((resolve, reject) => {
     exec(command, { cwd }, (err, stdout, stderr) => {
-      if (err || stderr) {
-        // console.debug('[error]', err || stderr);
-        return void reject(err || stderr);
+      if (err) {
+        // console.debug('[error]', err);
+        return reject(err);
       }
-      resolve(stdout.replace(/\n$/, ''));
+      resolve((stdout + stderr).trim().replace(/\n$/, ''));
     });
   });
 }
