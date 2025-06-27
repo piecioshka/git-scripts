@@ -4,41 +4,36 @@ const path = require("node:path");
 const process = require("node:process");
 const { getFilesAndDirectories } = require("../shared/__filesystem");
 const { isGitRepository } = require("../shared/__git");
-const { formatDate, runCommand } = require("../shared/__shared");
-const { yellow, brown, brightGreen } = require("../shared/__colors");
+const { formatDate, runCommand, sortBy } = require("../shared/__shared");
+const { yellow, brown, brightGreen, gray } = require("../shared/__colors");
 
 const CMD_FIRST_COMMIT = `git log --reverse | sed -n -e '1,5p'`;
 const CMD_GET_DATE = `${CMD_FIRST_COMMIT} | grep -v diff | head -n3 | tail -n1 | cut -f4-9 -d ' '`;
 
-async function getInitialDate(pathname) {
+async function getGitRepoStartDate(pathname) {
   const date = await runCommand(CMD_GET_DATE, { cwd: pathname });
   return new Date(date);
+}
+
+async function getGitAuthor(pathname) {
+  const author = await runCommand(`git log --format='%aN' | tail -n1`, {
+    cwd: pathname,
+  });
+  return author.trim();
 }
 
 async function describePathname(pathname = ".") {
   const result = {};
   result.isGitRepository = isGitRepository(pathname);
-  result.initialDate = await getInitialDate(pathname);
+  result.startDate = await getGitRepoStartDate(pathname);
+  result.author = await getGitAuthor(pathname);
   return result;
 }
 
-function sortByInitialDate(projectA, projectB) {
-  const dateA = formatDate(projectA.initialDate);
-  const dateB = formatDate(projectB.initialDate);
-
-  if (dateB > dateA) {
-    return -1;
-  } else if (dateB < dateA) {
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
 function toRecord(project) {
-  const date = formatDate(project.initialDate);
-  const projectName = project.basename;
-  return `- [${brown(date)}] ${brightGreen(projectName)}`;
+  const { projectName, startDate, author } = project;
+  const date = formatDate(startDate);
+  return `- [${brown(date)}] ${brightGreen(projectName)} ${gray(author)}`;
 }
 
 function displayResults(projects) {
@@ -52,9 +47,10 @@ function displayResults(projects) {
   }
 
   keys.forEach((year) => {
-    const projectsInYear = projects[year];
     console.log(`\n${year}\n`);
-    const projectRecords = projectsInYear.sort(sortByInitialDate).map(toRecord);
+    const projectRecords = projects[year]
+      .sort(sortBy((v) => v.startDate.getTime()))
+      .map(toRecord);
     console.log(projectRecords.join("\n"));
   });
 
@@ -82,16 +78,17 @@ function setupPromiseLoop(files, workspacePath) {
           return Promise.resolve();
         }
 
-        const year = descriptor.initialDate.getFullYear();
+        const year = descriptor.startDate.getFullYear();
 
         if (!projects[year]) {
           projects[year] = [];
         }
 
         projects[year].push({
-          initialDate: descriptor.initialDate,
-          pathname: pathname,
-          basename: file,
+          startDate: descriptor.startDate,
+          pathname,
+          projectName: file,
+          author: descriptor.author,
         });
         return projects;
       })
