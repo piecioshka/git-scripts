@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 folder=${1:-packages}
 
 echo $folder;

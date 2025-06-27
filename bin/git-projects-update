@@ -1,16 +1,15 @@
 #!/usr/bin/env node
 
-const path = require('path');
-const process = require('process');
+const path = require("node:path");
+const process = require("node:process");
+const { runCommand } = require("../shared/__shared");
 const {
   isFile,
   isDirectory,
-  isGitRepository,
   getFilesAndDirectories,
-  runCommand,
-} = require('../shared/__shared');
-
-const { red, green, yellow, magenta } = require('../shared/__colors');
+} = require("../shared/__filesystem");
+const { getGitBranchName, isGitRepository } = require("../shared/__git");
+const { red, green, yellow, magenta } = require("../shared/__colors");
 
 async function isLocalGitRepository(pathname) {
   if (!isGitRepository(pathname)) {
@@ -18,9 +17,8 @@ async function isLocalGitRepository(pathname) {
   }
 
   try {
-    const output = await runCommand(`git config remote.origin.url`, {
-      cwd: pathname,
-    });
+    const command = `git config remote.origin.url`;
+    const output = await runCommand(command, { cwd: pathname });
     return output.length === 0;
   } catch (error) {
     return true;
@@ -33,15 +31,13 @@ async function isDirtyGitRepository(pathname) {
   }
 
   try {
-    const output = await runCommand(
-      `git status --porcelain 2>/dev/null | wc -l`,
-      { cwd: pathname },
-    );
+    const command = `git status --porcelain 2>/dev/null | wc -l`;
+    const output = await runCommand(command, { cwd: pathname });
     return Boolean(Number(output));
   } catch (error) {
     if (error) {
       console.log(
-        `${red('[error]')} (dirty git repository) ${path.basename(pathname)}`,
+        `${red("[error]")} (dirty git repository) ${path.basename(pathname)}`,
       );
       console.error(error);
     }
@@ -55,18 +51,11 @@ async function updateGitRepository(pathname) {
   }
 
   try {
-    await runCommand(`git fetch -p && git pull --all`, { cwd: pathname });
+    const command = `git fetch -p && git pull --all`;
+    await runCommand(command, { cwd: pathname });
   } catch (error) {}
 
   return true;
-}
-
-async function getGitBranchName(pathname) {
-  if (!isGitRepository(pathname)) {
-    return false;
-  }
-
-  return runCommand('git branch --show-current', { cwd: pathname });
 }
 
 async function describePathname(pathname) {
@@ -93,20 +82,20 @@ function setupPromiseLoop(files, workspacePath) {
         const output = [];
 
         if (descriptor.isFile) {
-          output.push(yellow('[file]'));
+          output.push(yellow("[file]"));
         } else if (!descriptor.isGitRepository) {
-          output.push('[not a Git repo]');
+          output.push("[not a Git repo]");
         } else {
           if (descriptor.isDirtyGitRepository) {
-            output.push(yellow('[dirty]'));
+            output.push(yellow("[dirty]"));
           }
 
           if (descriptor.isUpdated) {
-            output.push(green('[updated]'));
+            output.push(green("[updated]"));
           }
 
           if (descriptor.isLocalGitRepository) {
-            output.push('[local Git repo]');
+            output.push("[local Git repo]");
           }
         }
 
@@ -116,10 +105,10 @@ function setupPromiseLoop(files, workspacePath) {
           output.push(magenta(`[${descriptor.branchName}]`));
         }
 
-        console.log(output.join(' '));
+        console.log(output.join(" "));
       })
       .catch((err) => {
-        console.log('Caught an Error');
+        console.log("Caught an Error");
         console.error(err);
       });
   }, Promise.resolve());

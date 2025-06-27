@@ -1,13 +1,11 @@
 #!/usr/bin/env node
 
-const path = require('path');
-const process = require('process');
-const {
-  isGitRepository,
-  getFilesAndDirectories,
-  formatDate,
-  runCommand,
-} = require('../shared/__shared');
+const path = require("node:path");
+const process = require("node:process");
+const { getFilesAndDirectories } = require("../shared/__filesystem");
+const { isGitRepository } = require("../shared/__git");
+const { formatDate, runCommand } = require("../shared/__shared");
+const { yellow, brown, brightGreen } = require("../shared/__colors");
 
 const CMD_FIRST_COMMIT = `git log --reverse | sed -n -e '1,5p'`;
 const CMD_GET_DATE = `${CMD_FIRST_COMMIT} | grep -v diff | head -n3 | tail -n1 | cut -f4-9 -d ' '`;
@@ -17,7 +15,7 @@ async function getInitialDate(pathname) {
   return new Date(date);
 }
 
-async function describePathname(pathname = '.') {
+async function describePathname(pathname = ".") {
   const result = {};
   result.isGitRepository = isGitRepository(pathname);
   result.initialDate = await getInitialDate(pathname);
@@ -40,26 +38,27 @@ function sortByInitialDate(projectA, projectB) {
 function toRecord(project) {
   const date = formatDate(project.initialDate);
   const projectName = project.basename;
-  return `- [${date}] ${projectName}`;
+  return `- [${brown(date)}] ${brightGreen(projectName)}`;
 }
 
 function displayResults(projects) {
+  console.log("List of projects with their initial commit dates:");
+
   const keys = Object.keys(projects);
 
   if (keys.length === 0) {
-    console.log('Not found any git repository in this directory\n');
+    console.log(yellow("\nNot found any git repository in this directory"));
     return;
   }
 
   keys.forEach((year) => {
     const projectsInYear = projects[year];
-    console.log(year);
-
+    console.log(`\n${year}\n`);
     const projectRecords = projectsInYear.sort(sortByInitialDate).map(toRecord);
-
-    console.log(projectRecords.join('\n'));
-    console.log('');
+    console.log(projectRecords.join("\n"));
   });
+
+  console.log("");
 }
 
 function setupPromiseLoop(files, workspacePath) {
@@ -97,14 +96,13 @@ function setupPromiseLoop(files, workspacePath) {
         return projects;
       })
       .catch((err) => {
-        console.log('Caught an Error');
+        console.log("Caught an Error");
         console.error(err);
       });
   }, Promise.resolve());
 }
 
 async function main() {
-  console.log('');
   const workspacePath = process.argv[2] || process.cwd();
   const files = getFilesAndDirectories(workspacePath);
   const projects = await setupPromiseLoop(files, workspacePath);

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 # Git push branch to origin with the same name.
 branch="$(git rev-parse --abbrev-ref HEAD)"
 echo -e 'Track your local branch to remove: '$branch

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 link=$(git config remote.origin.url)
 
 # Replace ":" to "/"

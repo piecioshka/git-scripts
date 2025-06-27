@@ -1,20 +1,28 @@
 #!/usr/bin/env node
 
-const exec = require('child_process').exec;
-const process = require('process');
+const exec = require("node:child_process").exec;
+const process = require("node:process");
+const { formatDate } = require("../shared/__shared");
 const {
-  isGitRepository,
   isDirectory,
   isHidden,
-  formatDate,
   getFilesAndDirectories,
-} = require('../shared/__shared');
+} = require("../shared/__filesystem");
+const { isGitRepository, getGitBranchName } = require("../shared/__git");
+const {
+  white,
+  red,
+  green,
+  yellow,
+  magenta,
+  brightGreen,
+} = require("../shared/__colors");
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-function countLines(name, path, callback) {
+async function countLines(name, pathname, callback) {
   const today = formatDate(new Date());
-  const command = `cd ${path} && git log --all --after="${today} 00:00:00" --before="${today} 23:59:59" --shortstat --oneline`;
+  const command = `cd ${pathname} && git log --all --after="${today} 00:00:00" --before="${today} 23:59:59" --shortstat --oneline`;
 
   const regexp = {
     changes: / (\d+) file/gim,
@@ -24,6 +32,7 @@ function countLines(name, path, callback) {
 
   const results = {
     name: name,
+    branchName: await getGitBranchName(pathname),
     changes: 0,
     insertions: 0,
     deletions: 0,
@@ -72,13 +81,30 @@ function countLines(name, path, callback) {
 }
 
 function displayProjectStatus(project) {
+  const {
+    name: projectName,
+    branchName,
+    changes,
+    insertions,
+    deletions,
+  } = project;
+  const status = [
+    `${changes} changes`,
+    `${insertions} insertions`,
+    `${deletions} deletions`,
+  ];
+  const statusColors = [
+    changes > 0 ? yellow : white,
+    insertions > 0 ? green : white,
+    deletions > 0 ? red : white,
+  ];
   console.log(
-    `### ${project.name}
-
-- ${project.changes} changes
-- ${project.insertions} insertions
-- ${project.deletions} deletions`.trim() + '\n',
+    `==> ${brightGreen(projectName)} ${magenta(`[${branchName}]`)}\n`,
   );
+  status.forEach((item, index) => {
+    console.log(`- ${statusColors[index](item)}`);
+  });
+  console.log("");
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -101,31 +127,28 @@ function handleProjectStatus(name, path) {
   });
 }
 
-function setupPromiseLoop(files, path) {
-  // Revert order to alphabetical.
-  files = files.reverse();
-
+async function setupPromiseLoop(files, path) {
   const handlers = files.map((name) => {
     return handleProjectStatus(name, path);
   });
 
-  Promise.all(handlers).then((projects) => {
-    projects = projects.filter(Boolean);
+  let projects = await Promise.all(handlers);
 
-    if (projects.length == 0) {
-      console.log('Nothing happened today');
-      return;
-    }
+  projects = projects.filter(Boolean);
 
-    projects.forEach(displayProjectStatus);
-  });
+  if (projects.length == 0) {
+    console.log(yellow("Nothing happened today"));
+    return;
+  }
+
+  projects.forEach(displayProjectStatus);
 }
 
 async function main() {
-  console.log('');
+  console.log("List of projects with changes today:\n");
   const workspacePath = process.argv[2] || process.cwd();
   const files = getFilesAndDirectories(workspacePath);
-  setupPromiseLoop(files, workspacePath);
+  await setupPromiseLoop(files, workspacePath);
 }
 
 main().catch(console.error);

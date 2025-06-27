@@ -27,7 +27,7 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
 - `git fire <message>` — Create commit with all changes and push to the origin [[example](examples/git-fire.example)]
 - `git open` — Open current repository in the browser
 - `git projects-births [path=./]` — Display when projects start for the whole workspace [[example](examples/git-projects-births.example)]
-- `git projects-status [path=./]` — Display status for all projects in a workspace [[example](examples/git-projects-status.example)]
+- `git projects-daily-status [path=./]` — Display status for all projects in a workspace [[example](examples/git-projects-daily-status.example)]
 - `git projects-update [path=./]` — Update all projects in a workspace [[example](examples/git-projects-update.example)]
 - `git publish-branch` — Publish current branch to the origin and set upstream
 - `git repo` — Display a repository URL (`remote.origin.url`)

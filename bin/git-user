@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 name=`git config user.name`
 email=`git config user.email`
 
