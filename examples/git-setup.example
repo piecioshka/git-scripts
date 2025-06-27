@@ -5,7 +5,7 @@ Initialized empty Git repository in /private/tmp/test/.git/
 ==> app > git add . -v
 
 ==> app > git commit -am 'Initialize project'
-[master (root-commit) c2d8b89] Initialize project
+[main (root-commit) c2d8b89] Initialize project
  1 file changed, 0 insertions(+), 0 deletions(-)
  create mode 100644 example-file.md
 

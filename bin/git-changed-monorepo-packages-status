@@ -6,7 +6,7 @@ folder=${1:-packages}
 
 echo $folder;
 
-git --no-pager diff master.. --name-only |
+git --no-pager diff main.. --name-only |
   grep \"^packages/\" |
   cut -f2 -d/ |
   sort |
