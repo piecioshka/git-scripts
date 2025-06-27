@@ -31,7 +31,7 @@ async function countLines(name, pathname, callback) {
   };
 
   const results = {
-    name: name,
+    projectName: name,
     branchName: await getGitBranchName(pathname),
     changes: 0,
     insertions: 0,
@@ -81,13 +81,7 @@ async function countLines(name, pathname, callback) {
 }
 
 function displayProjectStatus(project) {
-  const {
-    name: projectName,
-    branchName,
-    changes,
-    insertions,
-    deletions,
-  } = project;
+  const { projectName, branchName, changes, insertions, deletions } = project;
   const status = [
     `${changes} changes`,
     `${insertions} insertions`,
