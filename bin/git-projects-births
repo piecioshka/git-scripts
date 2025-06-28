@@ -5,7 +5,7 @@ const process = require("node:process");
 const { getFilesAndDirectories } = require("../shared/__filesystem");
 const { isGitRepository } = require("../shared/__git");
 const { formatDate, runCommand, sortBy } = require("../shared/__shared");
-const { yellow, brown, brightGreen, gray } = require("../shared/__colors");
+const { yellow, brown, gray } = require("../shared/__colors");
 
 const CMD_FIRST_COMMIT = `git log --reverse | sed -n -e '1,5p'`;
 const CMD_GET_DATE = `${CMD_FIRST_COMMIT} | grep -v diff | head -n3 | tail -n1 | cut -f4-9 -d ' '`;
@@ -33,28 +33,24 @@ async function describePathname(pathname = ".") {
 function toRecord(project) {
   const { projectName, startDate, author } = project;
   const date = formatDate(startDate);
-  return `- [${brown(date)}] ${brightGreen(projectName)} ${gray(author)}`;
+  return `- [${brown(date)}] ${projectName} ${gray(author)}`;
 }
 
 function displayResults(projects) {
-  console.log("List of projects with their initial commit dates:");
-
   const keys = Object.keys(projects);
 
   if (keys.length === 0) {
-    console.log(yellow("\nNot found any git repository in this directory"));
+    console.log(yellow("Not found any git repository in this directory"));
     return;
   }
 
   keys.forEach((year) => {
-    console.log(`\n${year}\n`);
+    console.log(year);
     const projectRecords = projects[year]
       .sort(sortBy((v) => v.startDate.getTime()))
       .map(toRecord);
     console.log(projectRecords.join("\n"));
   });
-
-  console.log("");
 }
 
 function setupPromiseLoop(files, workspacePath) {

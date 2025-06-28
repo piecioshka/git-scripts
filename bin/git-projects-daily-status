@@ -10,12 +10,14 @@ const {
 } = require("../shared/__filesystem");
 const { isGitRepository, getGitBranchName } = require("../shared/__git");
 const {
+  bold,
+  underline,
   white,
   red,
   green,
   yellow,
   magenta,
-  brightGreen,
+  cyan,
 } = require("../shared/__colors");
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -31,7 +33,7 @@ async function countLines(name, pathname, callback) {
   };
 
   const results = {
-    projectName: name,
+    pathname,
     branchName: await getGitBranchName(pathname),
     changes: 0,
     insertions: 0,
@@ -81,24 +83,23 @@ async function countLines(name, pathname, callback) {
 }
 
 function displayProjectStatus(project) {
-  const { projectName, branchName, changes, insertions, deletions } = project;
+  const { pathname, branchName, changes, insertions, deletions } = project;
   const status = [
     `${changes} changes`,
     `${insertions} insertions`,
     `${deletions} deletions`,
   ];
   const statusColors = [
-    changes > 0 ? yellow : white,
+    changes > 0 ? cyan : white,
     insertions > 0 ? green : white,
     deletions > 0 ? red : white,
   ];
   console.log(
-    `==> ${brightGreen(projectName)} ${magenta(`[${branchName}]`)}\n`,
+    `${underline(bold(yellow(pathname)))} ${magenta(`[${branchName}]`)}`,
   );
   status.forEach((item, index) => {
     console.log(`- ${statusColors[index](item)}`);
   });
-  console.log("");
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -139,7 +140,6 @@ async function setupPromiseLoop(files, path) {
 }
 
 async function main() {
-  console.log("List of projects with changes today:\n");
   const workspacePath = process.argv[2] || process.cwd();
   const files = getFilesAndDirectories(workspacePath);
   await setupPromiseLoop(files, workspacePath);

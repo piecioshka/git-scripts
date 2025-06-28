@@ -3,7 +3,7 @@
 const { isDirectory, getDirectories } = require("../shared/__filesystem");
 const { isGitRepository } = require("../shared/__git");
 const { runCommand } = require("../shared/__shared");
-const { blue, brightGreen } = require("../shared/__colors");
+const { underline, bold, blue, yellow } = require("../shared/__colors");
 
 const command = process.argv[2];
 const maxLevels = 5;
@@ -28,17 +28,16 @@ async function enter(currentPath, { basePath, baseLevel }) {
   const dirs = getDirectories(currentPath);
 
   for (const fileName of dirs) {
-    const fullFileName = `${currentPath}/${fileName}`;
-    if (isDirectory(fullFileName)) {
-      const currentLevel = getLevelForPath(fullFileName);
+    const pathname = `${currentPath}/${fileName}`;
+    if (isDirectory(pathname)) {
+      const currentLevel = getLevelForPath(pathname);
       const deep = currentLevel - baseLevel;
-      const name = fullFileName.replace(basePath, "");
-      const directory = `==> .${brightGreen(name)}`;
+      const directory = underline(bold(yellow(pathname)));
 
-      if (isGitRepository(fullFileName)) {
+      if (isGitRepository(pathname)) {
         console.log(`${directory} ${blue(">")} ${command}`);
         try {
-          const results = await runCommand(command, { cwd: fullFileName });
+          const results = await runCommand(command, { cwd: pathname });
           if (results) {
             console.log(`${results}`);
           }
@@ -47,13 +46,11 @@ async function enter(currentPath, { basePath, baseLevel }) {
             console.log("Caught an Error");
             console.error(err);
           }
-        } finally {
-          console.log("");
         }
       } else {
         // console.log(`This is not a Git repository: ${fullFileName}`);
         if (deep < maxLevels) {
-          await enter(fullFileName, { basePath, baseLevel });
+          await enter(pathname, { basePath, baseLevel });
         }
       }
     } else {
@@ -63,7 +60,6 @@ async function enter(currentPath, { basePath, baseLevel }) {
 }
 
 async function main() {
-  console.log("Run on all nested Git repositories:\n");
   const basePath = await runCommand("pwd");
   const baseLevel = getLevelForPath(basePath);
   await enter(basePath, { basePath, baseLevel });
