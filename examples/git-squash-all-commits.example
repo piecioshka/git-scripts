@@ -6,6 +6,7 @@
 Initialized empty Git repository in /private/tmp/test/.git/
 
 ==> app > git add . -v
+add 'example-file.md'
 
 ==> app > git commit -am 'Initialize project'
 [main (root-commit) b92ea3d] Initialize project
@@ -13,3 +14,5 @@ Initialized empty Git repository in /private/tmp/test/.git/
  create mode 100644 example-file.md
 
 ==> app > git branch -m main
+
+==> app > git config remote.origin.url git@github.com:piecioshka/test.git

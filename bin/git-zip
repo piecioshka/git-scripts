@@ -12,7 +12,7 @@ if [ -z "$fileName" ]; then
   exit 1
 fi
 
-__print_title "Verify if repository has no changes"
+__print_action "Verify if repository has no changes"
 
 status=$(git status --untracked-files=no -sb)
 lines=$(echo "$status" | wc -l)
@@ -20,7 +20,7 @@ lines=$(echo "$status" | wc -l)
 if [ "$lines" -eq 1 ]; then
   __print_title "No changes, building from clean repository"
   git archive --format zip --output "$fileName" HEAD
-  __print_title "Package created: \"$fileName\""
+  __print_action "Package created: \"$fileName\""
 else
   __print_title "Uncommitted changes, building from modified repository"
   git status --untracked-files=no -s
