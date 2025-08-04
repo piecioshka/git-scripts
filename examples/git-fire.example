@@ -7,7 +7,7 @@
 [main 315db23] Fire 🔥
  1 file changed, 1 insertion(+)
 
-==> app > git push
+==> app > git push --mirror -v
 Enumerating objects: 8, done.
 Counting objects: 100% (8/8), done.
 Delta compression using up to 16 threads
