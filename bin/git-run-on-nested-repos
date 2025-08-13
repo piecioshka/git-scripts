@@ -43,8 +43,7 @@ async function enter(currentPath, { basePath, baseLevel }) {
           }
         } catch (err) {
           if (err) {
-            console.log("Caught an Error");
-            console.error(err);
+            console.error(err.message);
           }
         }
       } else {

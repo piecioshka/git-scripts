@@ -108,8 +108,7 @@ function setupPromiseLoop(files, workspacePath) {
         console.log(output.join(" "));
       })
       .catch((err) => {
-        console.log("Caught an Error");
-        console.error(err);
+        console.error(err.message);
       });
   }, Promise.resolve());
 }
