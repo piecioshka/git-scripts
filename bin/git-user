@@ -2,7 +2,7 @@
 
 set -e
 
-name=`git config user.name`
-email=`git config user.email`
+name=`git config --get user.name`
+email=`git config --get user.email`
 
 echo "$name <$email>"

@@ -8,14 +8,30 @@ function isGitRepository(pathname) {
 }
 
 async function getGitBranchName(pathname) {
-  if (!isGitRepository(pathname)) {
-    return false;
-  }
+  if (!isGitRepository(pathname)) return false;
+  const command = "git branch --show-current";
+  return await runCommand(command, { cwd: pathname });
+}
 
-  return runCommand("git branch --show-current", { cwd: pathname });
+async function getGitOrigin(pathname) {
+  const command = "git config --get remote.origin.url";
+  return await runCommand(command, { cwd: pathname });
+}
+
+async function isLocalGitRepository(pathname) {
+  if (!isGitRepository(pathname)) return false;
+
+  try {
+    const output = await getGitOrigin(pathname);
+    return output.length === 0;
+  } catch (error) {
+    return true;
+  }
 }
 
 module.exports = {
   isGitRepository,
   getGitBranchName,
+  getGitOrigin,
+  isLocalGitRepository,
 };
