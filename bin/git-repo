@@ -5,20 +5,20 @@ set -e
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/../shared/__shared.sh"
 
-url=$(git config --get remote.origin.url 2> /dev/null)
+repo=$(git config --get remote.origin.url 2> /dev/null)
 isGitRepo=$(git rev-parse --is-inside-work-tree > /dev/null 2>&1 && echo true || echo false)
 
 # Case: a Git repo + remote origin
-if [[ -n "$url" && "$isGitRepo" == "true" ]]; then
-  echo $url
+if [[ -n "$repo" && "$isGitRepo" == "true" ]]; then
+  echo $repo
 fi
 
 # Case: a Git repo (only local
-if [[ -z "$url" && "$isGitRepo" == "true" ]]; then
+if [[ -z "$repo" && "$isGitRepo" == "true" ]]; then
   __print_warning "WARNING: is a local-only Git repo (remote.origin not detected)"
 fi
 
 # Case: Not a Git repo
-if [[ -z "$url" && "$isGitRepo" == "false" ]]; then
+if [[ -z "$repo" && "$isGitRepo" == "false" ]]; then
   __print_error "ERROR: is not a Git repo"
 fi

@@ -8,50 +8,26 @@ const {
   isDirectory,
   getFilesAndDirectories,
 } = require("../shared/__filesystem");
-const { getGitBranchName, isGitRepository } = require("../shared/__git");
-const { red, green, yellow, magenta } = require("../shared/__colors");
-
-async function isLocalGitRepository(pathname) {
-  if (!isGitRepository(pathname)) {
-    return false;
-  }
-
-  try {
-    const command = `git config remote.origin.url`;
-    const output = await runCommand(command, { cwd: pathname });
-    return output.length === 0;
-  } catch (error) {
-    return true;
-  }
-}
-
-async function isDirtyGitRepository(pathname) {
-  if (!isGitRepository(pathname)) {
-    return false;
-  }
-
-  try {
-    const command = `git status --porcelain 2>/dev/null | wc -l`;
-    const output = await runCommand(command, { cwd: pathname });
-    return Boolean(Number(output));
-  } catch (error) {
-    if (error) {
-      console.log(
-        `${red("[error]")} (dirty git repository) ${path.basename(pathname)}`,
-      );
-      console.error(error);
-    }
-    return false;
-  }
-}
+const {
+  getGitBranchName,
+  isGitRepository,
+  isLocalOnlyGitRepository,
+  isDirtyGitRepository,
+} = require("../shared/__git");
+const { isPrivateGitRepository } = require("../shared/__git_origin");
+const {
+  red,
+  green,
+  yellow,
+  blue,
+  magenta,
+  brown,
+  gray,
+} = require("../shared/__colors");
 
 async function updateGitRepository(pathname) {
-  if (!isGitRepository(pathname) || (await isLocalGitRepository(pathname))) {
-    return false;
-  }
-
   try {
-    const command = `git fetch -p && git pull --all`;
+    const command = "git fetch -p && git pull --all";
     await runCommand(command, { cwd: pathname });
   } catch (error) {}
 
@@ -59,14 +35,23 @@ async function updateGitRepository(pathname) {
 }
 
 async function describePathname(pathname) {
+  const start = Date.now();
   const result = {};
   result.isFile = isFile(pathname);
   result.isDirectory = isDirectory(pathname);
-  result.isGitRepository = isGitRepository(pathname);
-  result.isLocalGitRepository = await isLocalGitRepository(pathname);
-  result.isDirtyGitRepository = await isDirtyGitRepository(pathname);
-  result.isUpdated = await updateGitRepository(pathname);
+  result.isRepository = isGitRepository(pathname);
+  result.isLocalOnlyRepository = await isLocalOnlyGitRepository(pathname);
+  result.isDirtyRepository = await isDirtyGitRepository(pathname);
+  result.isUpdated =
+    result.isRepository &&
+    !result.isLocalOnlyRepository &&
+    !result.isDirtyRepository
+      ? await updateGitRepository(pathname)
+      : false;
   result.branchName = await getGitBranchName(pathname);
+  result.isPrivateRepository = await isPrivateGitRepository(pathname);
+  const end = Date.now();
+  result.elapsedTime = end - start;
   return result;
 }
 
@@ -75,35 +60,51 @@ function setupPromiseLoop(files, workspacePath) {
     const pathname = path.resolve(workspacePath, file);
 
     return promise
-      .then(() => {
-        return describePathname(pathname);
-      })
+      .then(() => describePathname(pathname))
       .then((descriptor) => {
+        const {
+          elapsedTime,
+          isFile,
+          isRepository,
+          isDirtyRepository,
+          isUpdated,
+          isLocalOnlyRepository,
+          branchName,
+          isPrivateRepository,
+        } = descriptor;
         const output = [];
 
-        if (descriptor.isFile) {
-          output.push(yellow("[file]"));
-        } else if (!descriptor.isGitRepository) {
-          output.push("[not a Git repo]");
-        } else {
-          if (descriptor.isDirtyGitRepository) {
-            output.push(yellow("[dirty]"));
+        if (isFile) {
+          output.push(blue("[file]"));
+        } else if (isRepository) {
+          if (isDirtyRepository) {
+            output.push(red("[* dirty]"));
           }
 
-          if (descriptor.isUpdated) {
+          if (isUpdated) {
             output.push(green("[updated]"));
           }
 
-          if (descriptor.isLocalGitRepository) {
+          if (isLocalOnlyRepository) {
             output.push("[local Git repo]");
           }
+        } else {
+          output.push(brown("[notrepo]"));
         }
 
         output.push(path.basename(pathname));
 
-        if (descriptor.isGitRepository && descriptor.branchName) {
-          output.push(magenta(`[${descriptor.branchName}]`));
+        if (isRepository) {
+          if (branchName) {
+            output.push(magenta(`[${branchName}]`));
+          }
+
+          if (isPrivateRepository) {
+            output.push(yellow(`[🔐 private]`));
+          }
         }
+
+        output.push(gray(`[${elapsedTime}ms]`));
 
         console.log(output.join(" "));
       })

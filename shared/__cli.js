@@ -5,6 +5,7 @@ function toObject(text) {
     return env;
   }, {});
 }
+
 function getProcessOptions(argv) {
   const options = {};
   for (let i = 0; i < argv.length; i++) {

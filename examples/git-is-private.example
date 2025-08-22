@@ -1,0 +1,2 @@
+/app/ > git is-private
+{ private: true }

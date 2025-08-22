@@ -15,4 +15,4 @@ add 'example-file.md'
 
 ==> app > git branch -m main
 
-==> app > git config remote.origin.url git@github.com:piecioshka/test.git
+==> app > git config --set remote.origin.url git@github.com:piecioshka/test.git

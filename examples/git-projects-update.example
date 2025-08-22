@@ -1,13 +1,13 @@
 > git projects-update
-[updated] ava-live
-[updated] battery-life-extender
-[updated] boilerplate-jasmine-typescript
-[updated] dicts
-[updated] eslint-config-piecioshka
-[updated] fakes
-[updated] fakes-auth
-[updated] [dirty] git-scripts
-[updated] github-track-followers-setup
-[updated] innerhtml-vs-innertext-vs-textcontent
-[updated] offline-strategy
-[updated] test-solidarity
+[updated] ava-live [main]
+[updated] battery-life-extender [main]
+[updated] boilerplate-jasmine-typescript [main]
+[updated] dicts [main]
+[updated] eslint-config-piecioshka [main]
+[updated] fakes [main]
+[updated] fakes-auth [main]
+[* dirty] git-scripts [main] [🔐 private]
+[updated] github-track-followers-setup [main]
+[updated] innerhtml-vs-innertext-vs-textcontent [main]
+[updated] offline-strategy [main]
+[updated] test-solidarity [main]

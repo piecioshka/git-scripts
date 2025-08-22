@@ -13,12 +13,12 @@ const USAGE = `
         $ git changed-monorepo-packages --oneline
 `;
 
-const GIT_DIFF_BRANCH = `git diff main.. --name-only`;
 const PACKAGES_PATH = /^packages\//;
 const PACKAGE_NAME = /^packages\/([\w-]*)\/(.*)$/;
 
 async function collectChangedPackages() {
-  const diff = await runCommand(GIT_DIFF_BRANCH);
+  const command = "git diff main.. --name-only";
+  const diff = await runCommand(command);
   const changedFiles = diff.split("\n");
   const onlyPackagesFiles = changedFiles.filter((x) => PACKAGES_PATH.test(x));
   const packages = onlyPackagesFiles.reduce((list, filename) => {

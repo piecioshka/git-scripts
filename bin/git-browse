@@ -2,15 +2,15 @@
 
 set -e
 
-link=$(git config remote.origin.url)
+repo=$(git config --get remote.origin.url)
 
 # Replace ":" to "/"
-link="${link/://}"
+repo="${repo/://}"
 
 # Replace "git@" by "https://"
-link="${link/git@/https://}"
+repo="${repo/git@/https://}"
 
 # Remove last ".git"
-link="${link/.git/}"
+repo="${repo/.git/}"
 
-open $link
+open $repo

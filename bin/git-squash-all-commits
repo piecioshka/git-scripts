@@ -5,7 +5,7 @@ set -e
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/../shared/__shared.sh"
 
-repo=$(git config remote.origin.url)
+repo=$(git config --get remote.origin.url)
 
 if [ -n "${repo}" ]; then
   __print_action "Copying origin URL: ${repo}"
@@ -15,5 +15,5 @@ __print_command_and_eval "rm -rfv .git/"
 __print_command_and_eval "git setup"
 
 if [ -n "$repo" ]; then
-  __print_command_and_eval "git config remote.origin.url ${repo}"
+  __print_command_and_eval "git config --set remote.origin.url ${repo}"
 fi

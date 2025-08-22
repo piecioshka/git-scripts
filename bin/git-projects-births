@@ -7,24 +7,23 @@ const { isGitRepository } = require("../shared/__git");
 const { formatDate, runCommand, sortBy } = require("../shared/__shared");
 const { yellow, brown, gray } = require("../shared/__colors");
 
-const CMD_FIRST_COMMIT = `git log --reverse | sed -n -e '1,5p'`;
-const CMD_GET_DATE = `${CMD_FIRST_COMMIT} | grep -v diff | head -n3 | tail -n1 | cut -f4-9 -d ' '`;
+const GIT_FIRST_COMMIT = "git log --reverse | sed -n -e '1,5p'";
+const GIT_FIRST_COMMIT_DATE = `${GIT_FIRST_COMMIT} | grep -v diff | head -n3 | tail -n1 | cut -f4-9 -d ' '`;
 
 async function getGitRepoStartDate(pathname) {
-  const date = await runCommand(CMD_GET_DATE, { cwd: pathname });
+  const date = await runCommand(GIT_FIRST_COMMIT_DATE, { cwd: pathname });
   return new Date(date);
 }
 
 async function getGitAuthor(pathname) {
-  const author = await runCommand(`git log --format='%aN' | tail -n1`, {
-    cwd: pathname,
-  });
+  const command = "git log --format='%aN' | tail -n1";
+  const author = await runCommand(command, { cwd: pathname });
   return author.trim();
 }
 
 async function describePathname(pathname = ".") {
   const result = {};
-  result.isGitRepository = isGitRepository(pathname);
+  result.isRepository = isGitRepository(pathname);
   result.startDate = await getGitRepoStartDate(pathname);
   result.author = await getGitAuthor(pathname);
   return result;
@@ -66,25 +65,25 @@ function setupPromiseLoop(files, workspacePath) {
     }
 
     return promise
-      .then(() => {
-        return describePathname(pathname);
-      })
+      .then(() => describePathname(pathname))
       .then((descriptor) => {
-        if (!descriptor.isGitRepository) {
+        const { isRepository, startDate, author } = descriptor;
+
+        if (!isRepository) {
           return Promise.resolve();
         }
 
-        const year = descriptor.startDate.getFullYear();
+        const year = startDate.getFullYear();
 
         if (!projects[year]) {
           projects[year] = [];
         }
 
         projects[year].push({
-          startDate: descriptor.startDate,
+          startDate,
           pathname,
           projectName: file,
-          author: descriptor.author,
+          author,
         });
         return projects;
       })
