@@ -18,7 +18,7 @@ if [[ -z "$repo" && "$isGitRepo" == "true" ]]; then
   __print_warning "WARNING: is a local-only Git repo (remote.origin not detected)"
 fi
 
-# Case: notrepo
+# Case: Not a Git repo
 if [[ -z "$repo" && "$isGitRepo" == "false" ]]; then
-  __print_error "ERROR: is notrepo"
+  __print_error "ERROR: is not a Git repo"
 fi
