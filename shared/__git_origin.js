@@ -1,5 +1,5 @@
 const { getGitOrigin, isGitRepository } = require("./__git");
-const { isNotFound } = require("./__http");
+const { isNotAvailable } = require("./__http");
 
 function parseGitOrigin(url) {
   const regex = /^(?:git@|https:\/\/)(?:www\.)?([^/:]+)[/:](.+?)(?:\.git)?$/;
@@ -21,8 +21,8 @@ async function isPrivateGitRepository(pathname) {
   const parsed = parseGitOrigin(gitOrigin);
   if (!parsed) return false;
 
-  const repo = parsed.repo;
-  const encodedRepo = encodeURIComponent(parsed.repo);
+  const { repo, domain } = parsed;
+  const encodedRepo = encodeURIComponent(repo);
 
   const origins = {
     "github.com": `https://api.github.com/repos/${repo}`,
@@ -30,9 +30,13 @@ async function isPrivateGitRepository(pathname) {
     "bitbucket.org": `https://api.bitbucket.org/2.0/repositories/${repo}`,
   };
 
-  const apiUrl = origins[parsed.domain];
+  const apiUrl = origins[domain];
 
-  return isNotFound(apiUrl);
+  if (!apiUrl) {
+    throw new Error(`Unsupported Git origin (${domain})`);
+  }
+
+  return isNotAvailable(apiUrl);
 }
 
 module.exports = {

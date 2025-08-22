@@ -1,10 +1,11 @@
+const FORBIDDEN = 403;
 const NOT_FOUND = 404;
 
-async function isNotFound(url) {
+async function isNotAvailable(url) {
   const response = await fetch(url, { method: "HEAD" });
-  return response.status === NOT_FOUND;
+  return [FORBIDDEN, NOT_FOUND].includes(response.status);
 }
 
 module.exports = {
-  isNotFound,
+  isNotAvailable,
 };

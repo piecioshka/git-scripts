@@ -1,0 +1,16 @@
+#!/usr/bin/env node
+
+const process = require("node:process");
+const { isPrivateGitRepository } = require("../shared/__git_origin");
+
+async function main() {
+  const workspacePath = process.argv[2] || process.cwd();
+  try {
+    const status = await isPrivateGitRepository(workspacePath);
+    console.log({ private: status });
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+main().catch(console.error);

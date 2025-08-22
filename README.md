@@ -25,6 +25,7 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
 - `git changed-monorepo-packages-status <folder_with_packages>` — Display packages status
 - `git clone-path <repository_url> <path/to/folder-or-file>` - Clone repository to the specified path
 - `git fire <message>` — Create commit with all changes and push to the origin [[example](examples/git-fire.example)]
+- `git is-private` — Check if the current repository is private [[example](examples/git-is-private.example)]
 - `git open` — Open current repository in the browser _(alias for `git browse`)_
 - `git projects-births [path=./]` — Display when projects start for the whole workspace [[example](examples/git-projects-births.example)]
 - `git projects-daily-status [path=./]` — Display status for all projects in a workspace [[example](examples/git-projects-daily-status.example)]

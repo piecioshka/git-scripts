@@ -11,41 +11,21 @@ const {
 const {
   getGitBranchName,
   isGitRepository,
-  isLocalGitRepository,
+  isLocalOnlyGitRepository,
+  isDirtyGitRepository,
 } = require("../shared/__git");
+const { isPrivateGitRepository } = require("../shared/__git_origin");
 const {
   red,
   green,
   yellow,
   blue,
   magenta,
-  cyan,
+  brown,
   gray,
 } = require("../shared/__colors");
-const { isPrivateGitRepository } = require("../shared/__git_origin");
-
-async function isDirtyGitRepository(pathname) {
-  if (!isGitRepository(pathname)) return false;
-
-  try {
-    const command = "git status --porcelain 2>/dev/null | wc -l";
-    const output = await runCommand(command, { cwd: pathname });
-    return Boolean(Number(output));
-  } catch (error) {
-    if (error) {
-      console.log(
-        `${red("[error]")} (dirty git repository) ${path.basename(pathname)}`,
-      );
-      console.error(error);
-    }
-    return false;
-  }
-}
 
 async function updateGitRepository(pathname) {
-  const isLocalRepository = await isLocalGitRepository(pathname);
-  if (!isGitRepository(pathname) || isLocalRepository) return false;
-
   try {
     const command = "git fetch -p && git pull --all";
     await runCommand(command, { cwd: pathname });
@@ -60,9 +40,14 @@ async function describePathname(pathname) {
   result.isFile = isFile(pathname);
   result.isDirectory = isDirectory(pathname);
   result.isRepository = isGitRepository(pathname);
-  result.isLocalRepository = await isLocalGitRepository(pathname);
+  result.isLocalOnlyRepository = await isLocalOnlyGitRepository(pathname);
   result.isDirtyRepository = await isDirtyGitRepository(pathname);
-  result.isUpdated = await updateGitRepository(pathname);
+  result.isUpdated =
+    result.isRepository &&
+    !result.isLocalOnlyRepository &&
+    !result.isDirtyRepository
+      ? await updateGitRepository(pathname)
+      : false;
   result.branchName = await getGitBranchName(pathname);
   result.isPrivateRepository = await isPrivateGitRepository(pathname);
   const end = Date.now();
@@ -83,29 +68,28 @@ function setupPromiseLoop(files, workspacePath) {
           isRepository,
           isDirtyRepository,
           isUpdated,
-          isLocalRepository,
+          isLocalOnlyRepository,
           branchName,
           isPrivateRepository,
         } = descriptor;
         const output = [];
-        output.push(gray(`[${elapsedTime}ms]`));
 
         if (isFile) {
           output.push(blue("[file]"));
         } else if (isRepository) {
           if (isDirtyRepository) {
-            output.push(cyan("[dirty]"));
+            output.push(red("[* dirty]"));
           }
 
           if (isUpdated) {
             output.push(green("[updated]"));
           }
 
-          if (isLocalRepository) {
+          if (isLocalOnlyRepository) {
             output.push("[local Git repo]");
           }
         } else {
-          output.push("[not a Git repo]");
+          output.push(brown("[notrepo]"));
         }
 
         output.push(path.basename(pathname));
@@ -119,6 +103,8 @@ function setupPromiseLoop(files, workspacePath) {
             output.push(yellow(`[🔐 private]`));
           }
         }
+
+        output.push(gray(`[${elapsedTime}ms]`));
 
         console.log(output.join(" "));
       })
