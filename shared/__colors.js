@@ -1,6 +1,8 @@
 const colors = {
   reset: "\x1b[0m",
   bold: "\x1b[1m",
+  dimGray: "\x1b[2m",
+  italic: "\x1b[3m",
   underline: "\x1b[4m",
   red: "\x1b[31m",
   green: "\x1b[32m",
@@ -25,6 +27,8 @@ const creator = (color) => (value) => `${color}${value}${colors.reset}`;
 module.exports = {
   reset: creator(colors.reset),
   bold: creator(colors.bold),
+  dimGray: creator(colors.dimGray),
+  italic: creator(colors.italic),
   underline: creator(colors.underline),
   red: creator(colors.red),
   green: creator(colors.green),

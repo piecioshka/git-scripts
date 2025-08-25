@@ -33,7 +33,7 @@ async function isPrivateGitRepository(pathname) {
   const apiUrl = origins[domain];
 
   if (!apiUrl) {
-    throw new Error(`Unsupported Git origin (${domain})`);
+    return null;
   }
 
   return isNotAvailable(apiUrl);

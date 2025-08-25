@@ -16,6 +16,8 @@ const {
 } = require("../shared/__git");
 const { isPrivateGitRepository } = require("../shared/__git_origin");
 const {
+  dimGray,
+  italic,
   red,
   green,
   yellow,
@@ -101,10 +103,12 @@ function setupPromiseLoop(files, workspacePath) {
 
           if (isPrivateRepository) {
             output.push(yellow(`[🔐 private]`));
+          } else if (isPrivateRepository === null) {
+            output.push(dimGray(`[unknown visibility]`));
           }
         }
 
-        output.push(gray(`[${elapsedTime}ms]`));
+        output.push(gray(italic(`+${elapsedTime}ms`)));
 
         console.log(output.join(" "));
       })
