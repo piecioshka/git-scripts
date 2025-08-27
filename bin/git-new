@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+set -e
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$script_dir/../shared/__shared.sh"
+
+function main {
+  issue_id="$1"
+
+  if [ -z "$issue_id" ]; then
+    echo "Usage: $(basename $0) <issue_id>"
+    exit 1
+  fi
+
+  folder=$(basename "$(pwd)")
+  branch="${folder}-${issue_id}"
+  __print_info "[i] Branch: ${branch}"
+
+  target="../${branch}"
+
+  __print_debug "[>] Switch branch..."
+  git switch main
+
+  __print_debug "[>] Pull recent changes..."
+  git pull --all
+
+  __print_debug "[>] Creating worktree..."
+  git worktree add "${target}"
+
+  cd "${target}"
+
+  __print_debug "[>] Creating commit..."
+  git commit --allow-empty -m "${issue_id}: Created a branch"
+
+  __print_debug "[>] Publishing branch..."
+  git publish-branch
+
+  __print_debug "[>] Creating PR..."
+  gh pr create --fill-first --draft
+}
+
+main "$@"

@@ -3,6 +3,14 @@
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/__colors.sh"
 
+function __print_info {
+  echo -e "${__COLOR_CYAN}${1}${__COLOR_RESET}"
+}
+
+function __print_debug {
+  echo -e "${__COLOR_BLUE}${1}${__COLOR_RESET}"
+}
+
 function __print_warning {
   echo -e "${__COLOR_YELLOW}${1}${__COLOR_RESET}"
 }
