@@ -20,6 +20,7 @@ const colors = {
   brightMagenta: "\x1b[95m",
   brightCyan: "\x1b[96m",
   brightWhite: "\x1b[97m",
+  darkGreen: "\x1b[38;5;22m",
 };
 
 const creator = (color) => (value) => `${color}${value}${colors.reset}`;
@@ -46,4 +47,5 @@ module.exports = {
   brightMagenta: creator(colors.brightMagenta),
   brightCyan: creator(colors.brightCyan),
   brightWhite: creator(colors.brightWhite),
+  darkGreen: creator(colors.darkGreen),
 };

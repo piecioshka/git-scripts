@@ -13,6 +13,7 @@ const {
   isGitRepository,
   isLocalOnlyGitRepository,
   isDirtyGitRepository,
+  isGitWorktree,
 } = require("../shared/__git");
 const { isPrivateGitRepository } = require("../shared/__git_origin");
 const {
@@ -25,15 +26,14 @@ const {
   magenta,
   brown,
   gray,
+  darkGreen,
 } = require("../shared/__colors");
 
-async function updateGitRepository(pathname) {
-  try {
-    const command = "git fetch -p && git pull --all";
-    await runCommand(command, { cwd: pathname });
-  } catch (error) {}
+const ALREADY_UP_TO_DATE = "up-to-date";
 
-  return true;
+async function updateGitRepository(pathname) {
+  const command = "git -c color.ui=always pull --all";
+  return await runCommand(command, { cwd: pathname });
 }
 
 async function describePathname(pathname) {
@@ -42,14 +42,25 @@ async function describePathname(pathname) {
   result.isFile = isFile(pathname);
   result.isDirectory = isDirectory(pathname);
   result.isRepository = isGitRepository(pathname);
+  result.isWorktree = isGitWorktree(pathname);
   result.isLocalOnlyRepository = await isLocalOnlyGitRepository(pathname);
   result.isDirtyRepository = await isDirtyGitRepository(pathname);
-  result.isUpdated =
-    result.isRepository &&
+  const shouldBeUpdated =
+    (result.isRepository || result.isWorktree) &&
     !result.isLocalOnlyRepository &&
-    !result.isDirtyRepository
-      ? await updateGitRepository(pathname)
-      : false;
+    !result.isDirtyRepository;
+  if (shouldBeUpdated) {
+    const status = await updateGitRepository(pathname);
+    if (typeof status === "string" && status.includes("Already up to date.")) {
+      result.updateStatus = ALREADY_UP_TO_DATE;
+    } else if (typeof status === "string") {
+      result.updateStatus = status;
+    } else if (status instanceof Error) {
+      result.updateStatus = false;
+    } else {
+      result.updateStatus = false;
+    }
+  }
   result.branchName = await getGitBranchName(pathname);
   result.isPrivateRepository = await isPrivateGitRepository(pathname);
   const end = Date.now();
@@ -68,8 +79,9 @@ function setupPromiseLoop(files, workspacePath) {
           elapsedTime,
           isFile,
           isRepository,
+          isWorktree,
           isDirtyRepository,
-          isUpdated,
+          updateStatus,
           isLocalOnlyRepository,
           branchName,
           isPrivateRepository,
@@ -80,18 +92,30 @@ function setupPromiseLoop(files, workspacePath) {
           output.push(blue("[file]"));
         } else if (isRepository) {
           if (isDirtyRepository) {
-            output.push(red("[* dirty]"));
+            output.push(red("[dirty repo]"));
           }
 
-          if (isUpdated) {
-            output.push(green("[updated]"));
+          if (updateStatus) {
+            switch (updateStatus) {
+              case ALREADY_UP_TO_DATE:
+                output.push(darkGreen(`[${ALREADY_UP_TO_DATE}]`));
+                break;
+              case false:
+                output.push(red("[update failed]"));
+                break;
+              default:
+                output.push(green("[updated]"));
+                break;
+            }
           }
 
           if (isLocalOnlyRepository) {
-            output.push("[local Git repo]");
+            output.push("[local repo]");
           }
+        } else if (isWorktree) {
+          output.push(dimGray(italic("[worktree]")));
         } else {
-          output.push(brown("[notrepo]"));
+          output.push(brown("[not repo]"));
         }
 
         output.push(path.basename(pathname));
@@ -111,6 +135,9 @@ function setupPromiseLoop(files, workspacePath) {
         output.push(gray(italic(`+${elapsedTime}ms`)));
 
         console.log(output.join(" "));
+        if (updateStatus && updateStatus !== ALREADY_UP_TO_DATE) {
+          console.log(updateStatus);
+        }
       })
       .catch((err) => {
         console.error(err.message);

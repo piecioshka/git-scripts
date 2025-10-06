@@ -1,7 +1,7 @@
 const path = require("node:path");
 
 const { runCommand } = require("./__shared");
-const { isDirectory } = require("./__filesystem");
+const { isFile, isDirectory } = require("./__filesystem");
 
 async function getGitBranchName(pathname) {
   if (!isGitRepository(pathname)) return false;
@@ -20,6 +20,13 @@ async function getGitOrigin(pathname) {
   } catch (error) {
     return null;
   }
+}
+
+function isGitWorktree(pathname) {
+  return (
+    isFile(path.resolve(pathname, ".git")) &&
+    !isDirectory(path.resolve(pathname, ".git"))
+  );
 }
 
 function isGitRepository(pathname) {
@@ -53,6 +60,7 @@ module.exports = {
   getGitBranchName,
   getGitOrigin,
   isGitRepository,
+  isGitWorktree,
   isLocalOnlyGitRepository,
   isDirtyGitRepository,
 };
