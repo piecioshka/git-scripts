@@ -31,8 +31,8 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Clones the repository to the specified path.
 - `git fire <message>`
   - Creates a commit with all changes and pushes it to the origin [[example](examples/git-fire.example)].
-- `git is-private`
-  - Checks if the current repository is private [[example](examples/git-is-private.example)].
+- `git is-private-repo`
+  - Checks if the current repository is private [[example](examples/git-is-private-repo.example)].
 - **[✨ New ✨]** `git new-issue <issue_id>`
   - Useful for starting a new task: creates a worktree, branch, and pull request.
 - `git open`
