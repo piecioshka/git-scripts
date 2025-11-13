@@ -21,8 +21,6 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
 
 - `git bars <committer_author> <year[_month]>`
   - Displays the revision count for the specified period [[example](examples/git-bars.example)].
-- `git browse`
-  - Opens the current repository in the browser.
 - `git changed-monorepo-packages [--oneline] [--main]`
   - Displays changed packages [[example](examples/git-changed-monorepo-packages.example)].
 - `git changed-monorepo-packages-status <folder_with_packages>`
@@ -35,8 +33,6 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Checks if the current repository is private [[example](examples/git-is-private-repo.example)].
 - **[✨ New ✨]** `git new-issue <issue_id>`
   - Useful for starting a new task: creates a worktree, branch, and pull request.
-- `git open`
-  - Opens the current repository in the browser _(alias for `git browse`)_.
 - `git projects-births [path=./]`
   - Displays the start dates of projects in the workspace [[example](examples/git-projects-births.example)].
 - `git projects-daily-status [path=./]`
@@ -63,8 +59,6 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Changes the default branch from `master` to `main` in all repositories in the workspace.
 - `git user`
   - Displays the current user [[example](examples/git-user.example)].
-- `git www`
-  - Opens the current repository in the browser _(alias for `git browse`)_.
 - `git zip <name>`
   - Creates an archive from the current repository [[example](examples/git-zip.example)].
 
