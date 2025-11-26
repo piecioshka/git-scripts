@@ -31,13 +31,13 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Creates a commit with all changes and pushes it to the origin [[example](examples/git-fire.example)].
 - `git is-private-repo`
   - Checks if the current repository is private [[example](examples/git-is-private-repo.example)].
-- **[✨ New ✨]** `git new-issue <issue_id>`
+- `git new-issue <issue_id>`
   - Useful for starting a new task: creates a worktree, branch, and pull request.
 - `git projects-births [path=./]`
   - Displays the start dates of projects in the workspace [[example](examples/git-projects-births.example)].
 - `git projects-daily-status [path=./]`
   - Displays the status of all projects in the workspace [[example](examples/git-projects-daily-status.example)].
-- `git projects-update [path=./]`
+- `git projects-update [path=./] [--verbose]`
   - Updates all projects in the workspace [[example](examples/git-projects-update.example)].
 - `git publish-branch`
   - Publishes the current branch to the origin and sets the upstream.
@@ -49,7 +49,7 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Initializes the repository and creates the initial revision [[example](examples/git-setup.example)].
 - `git squash-all-commits`
   - Removes the `.git/` directory and reinitializes the repository [[example](examples/git-squash-all-commits.example)].
-- `git sync`
+- `git sync [--verbose]`
   - Checks if the local and remote repository states are the same [[example](examples/git-sync.example)] [[example-2](examples/git-sync-verbose.example)].
 - `git tags-refresh`
   - Refreshes tags in the current repository.

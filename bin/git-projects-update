@@ -31,6 +31,8 @@ const {
 
 const ALREADY_UP_TO_DATE = "up-to-date";
 
+let verboseEnabled = false;
+
 async function updateGitRepository(pathname) {
   const command = "git -c color.ui=always pull --all";
   return await runCommand(command, { cwd: pathname });
@@ -135,7 +137,7 @@ function setupPromiseLoop(files, workspacePath) {
         output.push(gray(italic(`+${elapsedTime}ms`)));
 
         console.log(output.join(" "));
-        if (updateStatus && updateStatus !== ALREADY_UP_TO_DATE) {
+        if (verboseEnabled && updateStatus && updateStatus !== ALREADY_UP_TO_DATE) {
           console.log(updateStatus);
         }
       })
@@ -146,7 +148,9 @@ function setupPromiseLoop(files, workspacePath) {
 }
 
 async function main() {
-  const workspacePath = process.argv[2] || process.cwd();
+  const args = process.argv.slice(2);
+  verboseEnabled = args.includes("--verbose");
+  const workspacePath = args.find(arg => !arg.startsWith("--")) || process.cwd();
   const files = getFilesAndDirectories(workspacePath);
   await setupPromiseLoop(files, workspacePath);
 }
