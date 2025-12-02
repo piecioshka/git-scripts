@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+# NOTE: Do not enable `set -e` here: `git config --get remote.origin.url`
+# exits non-zero for repos without a remote, and we still need to print
+# the local-only warning in that case.
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$script_dir/../shared/__shared.sh"
+
+isGitRepo=$(git rev-parse --is-inside-work-tree > /dev/null 2>&1 && echo true || echo false)
+
+# Case: not a Git repository
+if [[ "$isGitRepo" == "false" ]]; then
+  __print_error "ERROR: $(pwd) is not a Git repository"
+  exit 1
+fi
+
+remote=$(git config --get remote.origin.url)
+
+# Case: a local Git repository
+if [[ -z "$remote" ]]; then
+  __print_info "INFO: $(pwd) is a local Git repository"
+  exit 1
+fi
+
+# Case: a remote Git repository
+if [[ -n "$remote" ]]; then
+  echo $remote
+  exit 0
+fi

@@ -41,7 +41,7 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Updates all projects in the workspace [[example](examples/git-projects-update.example)].
 - `git publish-branch`
   - Publishes the current branch to the origin and sets the upstream.
-- `git repo`
+- `git repo-origin-url`
   - Displays the repository URL (`remote.origin.url`).
 - `git run-on-nested-repos COMMAND`
   - Runs the specified command in all nested Git repositories [[example](examples/git-run-on-nested-repos.example)].

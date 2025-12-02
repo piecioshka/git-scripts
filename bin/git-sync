@@ -7,7 +7,7 @@ source "$script_dir/../shared/__shared.sh"
 
 verboseEnabled=$([[ ${1} == "--verbose" ]] && echo true || echo false)
 
-$verboseEnabled && __print_command_and_eval "git repo"
+$verboseEnabled && __print_command_and_eval "git repo-origin-url"
 $verboseEnabled && __print_command_and_eval "git status -sb"
 $verboseEnabled && __print_command_and_eval "git branch --all -v"
 $verboseEnabled && __print_command_and_eval "git tag -l"

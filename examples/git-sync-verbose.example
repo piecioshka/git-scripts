@@ -1,6 +1,6 @@
 /app/ > git sync --verbose
-==> app > git repo
-WARNING: is a local-only Git repo (remote.origin not detected)
+==> app > git repo-origin-url
+INFO: is a local-only Git repository
 
 ==> app > git status -sb
 ## main
