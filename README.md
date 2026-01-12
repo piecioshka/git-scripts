@@ -51,6 +51,8 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Removes the `.git/` directory and reinitializes the repository [[example](examples/git-squash-all-commits.example)].
 - `git sync [--verbose]`
   - Checks if the local and remote repository states are the same [[example](examples/git-sync.example)] [[example-2](examples/git-sync-verbose.example)].
+- `git tags-recreate-from-commits`
+  - Recreates tags based on commit messages [[example](examples/git-tags-recreate-from-commits.example)].
 - `git tags-refresh`
   - Refreshes tags in the current repository.
 - `git update-default-branch-master-to-main`
