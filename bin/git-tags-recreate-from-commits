@@ -15,7 +15,10 @@ git log --format='%H %s' | \
     # Check if tag doesn't already exist
     if test -z "$(git tag -l "$tag")"; then
       # Create annotated tag with "v" prefix (e.g., "v1.2.3")
-      git tag -a "v$tag" -m "v$tag" "$sha"
-      echo "Created tag v$tag for commit $sha"
+      if git tag -a "v$tag" -m "v$tag" "$sha" 2>/dev/null; then
+        echo "Created tag v$tag for commit $sha"
+      else
+        echo "Failed to create tag v$tag for commit $sha" >&2
+      fi
     fi
   done
