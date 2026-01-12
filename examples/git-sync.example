@@ -4,5 +4,7 @@ Already up to date.
 
 ==> app > git fetch -pv
 
-==> app > git push --mirror -v
+==> app > git push --all -v
 Everything up-to-date
+
+==> app > git push --tags -v
