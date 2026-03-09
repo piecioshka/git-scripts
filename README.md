@@ -27,6 +27,8 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Displays the status of packages.
 - `git clone-path <repository_url> <path/to/folder-or-file>`
   - Clones the repository to the specified path.
+- `git copy-branch-name`
+  - Copies the current branch name to the clipboard [[example](examples/git-copy-branch-name.example)].
 - `git fire <message>`
   - Creates a commit with all changes and pushes it to the origin [[example](examples/git-fire.example)].
 - `git is-private-repo`

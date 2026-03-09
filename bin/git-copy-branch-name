@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# Copies the current branch name to the clipboard.
+# Credits: https://github.com/holman/dotfiles/blob/master/bin/git-copy-branch-name
+
+set -e
+
+branch=$(git rev-parse --abbrev-ref HEAD)
+echo $branch
+echo $branch | tr -d '\n' | tr -d ' ' | pbcopy
