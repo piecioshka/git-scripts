@@ -127,10 +127,10 @@ function setupPromiseLoop(files, workspacePath) {
             output.push(magenta(`[${branchName}]`));
           }
 
-          if (isPrivateRepository) {
+          if (isPrivateRepository.private) {
             output.push(yellow(`[🔐 private]`));
-          } else if (isPrivateRepository === null) {
-            output.push(dimGray(`[unknown visibility]`));
+          } else if (isPrivateRepository.private === null) {
+            output.push(dimGray(`[${isPrivateRepository.reason}]`));
           }
         }
 

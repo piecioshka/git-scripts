@@ -1,2 +1,11 @@
 /app/ > git is-private
-{ private: true }
+{ private: true, reason: "private or not found" }
+
+/app/ > git is-private
+{ private: false, reason: "public repository" }
+
+/app/ > git is-private
+{ private: null, reason: "unsupported domain" }
+
+/app/ > git is-private
+{ private: null, reason: "rate limit exceeded" }

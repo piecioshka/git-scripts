@@ -6,7 +6,7 @@ const { isPrivateGitRepository } = require("../shared/__git_origin");
 async function main() {
   const workspacePath = process.argv[2] || process.cwd();
   const status = await isPrivateGitRepository(workspacePath);
-  console.log({ private: status });
+  console.log(status);
 }
 
 main().catch(console.error);
