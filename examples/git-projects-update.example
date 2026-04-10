@@ -11,3 +11,77 @@
 [updated] innerhtml-vs-innertext-vs-textcontent [main]
 [updated] offline-strategy [main]
 [updated] test-solidarity [main]
+
+> DEBUG=true git projects-update
+==> git config --get remote.origin.url
+==> git status --porcelain 2>/dev/null | wc -l
+==> git -c color.ui=always pull --all
+==> git branch --show-current
+==> git config --get remote.origin.url
+[updated] ava-live [main]
+==> git config --get remote.origin.url
+==> git status --porcelain 2>/dev/null | wc -l
+==> git -c color.ui=always pull --all
+==> git branch --show-current
+==> git config --get remote.origin.url
+[updated] battery-life-extender [main]
+==> git config --get remote.origin.url
+==> git status --porcelain 2>/dev/null | wc -l
+==> git -c color.ui=always pull --all
+==> git branch --show-current
+==> git config --get remote.origin.url
+[updated] boilerplate-jasmine-typescript [main]
+==> git config --get remote.origin.url
+==> git status --porcelain 2>/dev/null | wc -l
+==> git -c color.ui=always pull --all
+==> git branch --show-current
+==> git config --get remote.origin.url
+[updated] dicts [main]
+==> git config --get remote.origin.url
+==> git status --porcelain 2>/dev/null | wc -l
+==> git -c color.ui=always pull --all
+==> git branch --show-current
+==> git config --get remote.origin.url
+[updated] eslint-config-piecioshka [main]
+==> git config --get remote.origin.url
+==> git status --porcelain 2>/dev/null | wc -l
+==> git -c color.ui=always pull --all
+==> git branch --show-current
+==> git config --get remote.origin.url
+[updated] fakes [main]
+==> git config --get remote.origin.url
+==> git status --porcelain 2>/dev/null | wc -l
+==> git -c color.ui=always pull --all
+==> git branch --show-current
+==> git config --get remote.origin.url
+[updated] fakes-auth [main]
+==> git config --get remote.origin.url
+==> git status --porcelain 2>/dev/null | wc -l
+==> git -c color.ui=always pull --all
+==> git branch --show-current
+==> git config --get remote.origin.url
+[* dirty] git-scripts [main] [🔐 private]
+==> git config --get remote.origin.url
+==> git status --porcelain 2>/dev/null | wc -l
+==> git -c color.ui=always pull --all
+==> git branch --show-current
+==> git config --get remote.origin.url
+[updated] github-track-followers-setup [main]
+==> git config --get remote.origin.url
+==> git status --porcelain 2>/dev/null | wc -l
+==> git -c color.ui=always pull --all
+==> git branch --show-current
+==> git config --get remote.origin.url
+[updated] innerhtml-vs-innertext-vs-textcontent [main]
+==> git config --get remote.origin.url
+==> git status --porcelain 2>/dev/null | wc -l
+==> git -c color.ui=always pull --all
+==> git branch --show-current
+==> git config --get remote.origin.url
+[updated] offline-strategy [main]
+==> git config --get remote.origin.url
+==> git status --porcelain 2>/dev/null | wc -l
+==> git -c color.ui=always pull --all
+==> git branch --show-current
+==> git config --get remote.origin.url
+[updated] test-solidarity [main]

@@ -39,7 +39,7 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Displays the start dates of projects in the workspace [[example](examples/git-projects-births.example)].
 - `git projects-daily-status [path=./]`
   - Displays the status of all projects in the workspace [[example](examples/git-projects-daily-status.example)].
-- `git projects-update [path=./] [--verbose]`
+- `[DEBUG=true] git projects-update [path=./] [--verbose]`
   - Updates all projects in the workspace [[example](examples/git-projects-update.example)].
 - `git publish-branch`
   - Publishes the current branch to the origin and sets the upstream.

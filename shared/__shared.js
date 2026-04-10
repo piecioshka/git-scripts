@@ -1,7 +1,11 @@
 const exec = require("node:child_process").exec;
 
+const DEBUG = process.env.DEBUG === "true" || process.env.DEBUG === "1";
+
 function __print_command(command) {
-  // console.log(`==> ${command}`);
+  if (DEBUG) {
+    console.log(`==> ${command}`);
+  }
 }
 
 function runCommand(command, { cwd } = { cwd: "." }) {
@@ -9,7 +13,9 @@ function runCommand(command, { cwd } = { cwd: "." }) {
   return new Promise((resolve, reject) => {
     exec(command, { cwd }, (err, stdout, stderr) => {
       if (err) {
-        // console.debug('[error]', err);
+        if (DEBUG) {
+          console.debug('[error]', err);
+        }
         return reject(err);
       }
       resolve((stdout + stderr).trim().replace(/\n$/, ""));
