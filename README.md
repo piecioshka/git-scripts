@@ -73,3 +73,7 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
 - https://github.com/jwiegley/git-scripts
 - https://github.com/knadh/git-bars
 - https://github.com/nvie/gitflow
+
+## License
+
+[The MIT License](http://piecioshka.mit-license.org) @ 2026
