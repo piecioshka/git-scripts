@@ -69,6 +69,20 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
 - `git zip <name>`
   - Creates an archive from the current repository [[example](examples/git-zip.example)].
 
+## Demos
+
+Recorded with [vhs](https://github.com/charmbracelet/vhs).
+
+### `git stats-between-tags`
+
+```bash
+git stats-between-tags
+git stats-between-tags --level=minor
+git stats-between-tags --level=major
+```
+
+![](demo/git-stats-between-tags.gif)
+
 ## Related projects
 
 - https://github.com/aarek/git-tools
