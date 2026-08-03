@@ -1,0 +1,23 @@
+> git stats-between-tags --level=minor
+
+(root)..v0.1.0  13 commits   +5371     -0   Δ+5371   58 files  2026-06-11 · 0d · 1 author
+v0.1.0..v0.2.0  11 commits   +2328    -50   Δ+2278   46 files  2026-06-11 · 0d · 1 author
+v0.2.0..v0.3.0   9 commits   +1298    -24   Δ+1274   30 files  2026-06-11 · 0d · 1 author
+v0.3.0..v0.4.0   5 commits   +2622    -52   Δ+2570   35 files  2026-06-11 · 0d · 1 author
+v0.4.0..v0.5.0   6 commits   +1325    -94   Δ+1231   34 files  2026-06-11 · 0d · 1 author
+v0.5.0..v0.6.0  11 commits   +2517   -641   Δ+1876   59 files  2026-06-13 · 2d · 1 author
+v0.6.0..v0.7.0   3 commits   +1712   -278   Δ+1434   27 files  2026-06-13 · 0d · 1 author
+v0.7.0..v1.0.0   1 commits    +855    -34    Δ+821   26 files  2026-06-15 · 2d · 1 author
+v1.0.0..v1.1.0  61 commits  +10214   -843   Δ+9371  179 files  2026-06-27 · 12d · 1 author
+v1.1.0..HEAD    38 commits  +12680  -1074  Δ+11606  260 files  2026-08-03 · 37d · 1 author
+
+Total: 158 commits  +40922  -3090  Δ+37832
+
+
+> git stats-between-tags --level=major
+
+(root)..v1.0.0  59 commits  +16855     -0  Δ+16855  185 files  2026-06-15 · 4d · 1 author
+v1.0.0..HEAD    99 commits  +22056  -1079  Δ+20977  337 files  2026-08-03 · 49d · 1 author
+
+Total: 158 commits  +38911  -1079  Δ+37832
+

@@ -51,6 +51,9 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Initializes the repository and creates the initial revision [[example](examples/git-setup.example)].
 - `git squash-all-commits`
   - Removes the `.git/` directory and reinitializes the repository [[example](examples/git-squash-all-commits.example)].
+- `git stats-between-tags [pattern] [--level=minor|major]`
+  - Displays commits, added and removed lines between consecutive tags (`HEAD` is treated as a tag) [[example](examples/git-stats-between-tags.example)].
+  - With `--level` only the tags of the given semver level are compared, so the changes of the skipped tags are merged into the surrounding range [[example](examples/git-stats-between-tags-level.example)].
 - `git sync [--verbose]`
   - Checks if the local and remote repository states are the same [[example](examples/git-sync.example)] [[example-2](examples/git-sync-verbose.example)].
 - `git tags-recreate-from-commits`

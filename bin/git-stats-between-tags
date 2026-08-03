@@ -1,0 +1,254 @@
+#!/usr/bin/env node
+
+const process = require("node:process");
+const { runCommand, sortBy } = require("../shared/__shared");
+const { green, red, gray, bold, yellow } = require("../shared/__colors");
+
+const USAGE = `
+    Usage: git stats-between-tags [PATTERN] [--level=minor|major]
+
+    Displays commits, added and removed lines between consecutive tags.
+    HEAD is treated as a special, final version of a tag.
+
+    The --level option keeps only the tags of the given semver level, so
+    the changes of the skipped tags are merged into the surrounding range.
+
+    Examples:
+
+        $ git stats-between-tags
+        $ git stats-between-tags "v*"
+        $ git stats-between-tags --level=minor
+        $ git stats-between-tags "v*" --level=major
+`;
+
+// The SHA of an empty tree, the output of: git hash-object -t tree /dev/null
+const EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
+const ROOT_LABEL = "(root)";
+const MILLISECONDS_IN_DAY = 24 * 60 * 60 * 1000;
+
+// The output of `git diff --shortstat` skips parts that are zero, so
+// `58 files changed, 5371 insertions(+)` and an empty string are both valid.
+function parseShortstat(output) {
+  const read = (pattern) => {
+    const match = output.match(pattern);
+    return match ? Number(match[1]) : 0;
+  };
+  return {
+    files: read(/(\d+) files? changed/),
+    added: read(/(\d+) insertions?\(\+\)/),
+    removed: read(/(\d+) deletions?\(-\)/),
+  };
+}
+
+function buildRanges(tags, hasHeadCommits) {
+  const ranges = tags.map((tag, index) => {
+    const previous = tags[index - 1];
+    return previous
+      ? { label: `${previous}..${tag}`, revRange: `${previous}..${tag}`, diffRange: `${previous}..${tag}`, to: tag } // prettier-ignore
+      : { label: `${ROOT_LABEL}..${tag}`, revRange: tag, diffRange: `${EMPTY_TREE}..${tag}`, to: tag }; // prettier-ignore
+  });
+
+  if (!hasHeadCommits) {
+    return ranges;
+  }
+
+  const lastTag = tags[tags.length - 1];
+
+  if (!lastTag) {
+    return [
+      { label: `${ROOT_LABEL}..HEAD`, revRange: "HEAD", diffRange: `${EMPTY_TREE}..HEAD`, to: "HEAD" }, // prettier-ignore
+    ];
+  }
+
+  return ranges.concat({
+    label: `${lastTag}..HEAD`,
+    revRange: `${lastTag}..HEAD`,
+    diffRange: `${lastTag}..HEAD`,
+    to: "HEAD",
+  });
+}
+
+// The `$` anchor drops the pre-releases (`v1.2.0-rc.1`), which otherwise
+// would be counted as regular versions of the given level.
+const LEVEL_PATTERNS = {
+  minor: /^v?\d+\.\d+\.0$/,
+  major: /^v?\d+\.0\.0$/,
+};
+
+function filterByLevel(tags, level) {
+  if (!level) {
+    return tags;
+  }
+  return tags.filter((tag) => LEVEL_PATTERNS[level].test(tag));
+}
+
+function parseArguments(argv) {
+  const options = { pattern: undefined, level: undefined, help: false };
+
+  argv.forEach((argument) => {
+    if (argument === "--help" || argument === "-h") {
+      options.help = true;
+    } else if (argument.startsWith("--level=")) {
+      options.level = argument.replace("--level=", "");
+    } else if (!argument.startsWith("-")) {
+      options.pattern = argument;
+    }
+  });
+
+  return options;
+}
+
+async function getTags(pattern) {
+  const list = pattern ? `--list "${pattern}"` : "";
+  const output = await runCommand(`git tag ${list} --sort=creatordate`);
+  return output.split("\n").filter(Boolean);
+}
+
+async function hasCommitsAfter(tag) {
+  const output = await runCommand(`git rev-list --count ${tag}..HEAD`);
+  return Number(output) > 0;
+}
+
+async function getRangeDate(reference) {
+  const command =
+    reference === "HEAD"
+      ? "git log -1 --format=%cs HEAD"
+      : `git log -1 --format=%cs ${reference}`;
+  const output = await runCommand(command);
+  return output.trim();
+}
+
+async function collectRangeStats(range) {
+  const [commits, shortstat, authors, endDate] = await Promise.all([
+    runCommand(`git rev-list --count ${range.revRange}`),
+    runCommand(`git diff --shortstat ${range.diffRange}`),
+    runCommand(`git log --format="%aN" ${range.revRange}`),
+    getRangeDate(range.to),
+  ]);
+
+  const uniqueAuthors = new Set(
+    authors.split("\n").filter((author) => author.trim().length > 0),
+  );
+
+  return {
+    label: range.label,
+    commits: Number(commits),
+    authors: uniqueAuthors.size,
+    endDate,
+    ...parseShortstat(shortstat),
+  };
+}
+
+function countDays(previousDate, currentDate) {
+  if (!previousDate || !currentDate) {
+    return null;
+  }
+  const difference = new Date(currentDate) - new Date(previousDate);
+  return Math.max(0, Math.round(difference / MILLISECONDS_IN_DAY));
+}
+
+function formatDelta(value) {
+  const sign = value >= 0 ? "+" : "-";
+  return `Δ${sign}${Math.abs(value)}`;
+}
+
+// Colors have to be applied after padding, because ANSI escape codes
+// count towards the string length and would break the alignment.
+const padColored = (value, width, color) =>
+  color(String(value).padStart(width));
+
+function displayResults(datalist, rootDate) {
+  if (datalist.length === 0) {
+    console.log(yellow("Not found any range to compare"));
+    return;
+  }
+
+  const widthOf = (cb) => Math.max(...datalist.map((item) => cb(item).length));
+  const widths = {
+    label: widthOf((item) => item.label),
+    commits: widthOf((item) => String(item.commits)),
+    added: widthOf((item) => `+${item.added}`),
+    removed: widthOf((item) => `-${item.removed}`),
+    delta: widthOf((item) => formatDelta(item.added - item.removed)),
+    files: widthOf((item) => String(item.files)),
+  };
+  const total = { commits: 0, added: 0, removed: 0 };
+
+  console.log("");
+
+  datalist.forEach((item, index) => {
+    total.commits += item.commits;
+    total.added += item.added;
+    total.removed += item.removed;
+
+    const startDate = datalist[index - 1]?.endDate ?? rootDate;
+    const days = countDays(startDate, item.endDate);
+    const authors = `${item.authors} ${item.authors === 1 ? "author" : "authors"}`; // prettier-ignore
+    const meta = [item.endDate, days === null ? null : `${days}d`, authors]
+      .filter(Boolean)
+      .join(" · ");
+
+    const delta = item.added - item.removed;
+    const columns = [
+      item.label.padEnd(widths.label),
+      `${String(item.commits).padStart(widths.commits)} commits`,
+      padColored(`+${item.added}`, widths.added, green),
+      padColored(`-${item.removed}`, widths.removed, red),
+      padColored(formatDelta(delta), widths.delta, delta >= 0 ? green : red),
+      `${String(item.files).padStart(widths.files)} files`,
+      gray(meta),
+    ];
+
+    console.log(columns.join("  "));
+  });
+
+  const totalDelta = total.added - total.removed;
+  const summary = [
+    `${total.commits} commits`,
+    green(`+${total.added}`),
+    red(`-${total.removed}`),
+    (totalDelta >= 0 ? green : red)(formatDelta(totalDelta)),
+  ].join("  ");
+
+  console.log(`\n${bold("Total:")} ${summary}\n`);
+}
+
+async function main() {
+  const { pattern, level, help } = parseArguments(process.argv.slice(2));
+
+  if (help) {
+    console.log(USAGE);
+    return;
+  }
+
+  if (level && !LEVEL_PATTERNS[level]) {
+    console.error(yellow(`Unsupported level: ${level}`));
+    console.log(USAGE);
+    return void process.exit(1);
+  }
+
+  try {
+    await runCommand("git rev-parse --git-dir");
+  } catch (error) {
+    console.error(yellow("Not a git repository"));
+    return void process.exit(1);
+  }
+
+  const tags = filterByLevel(await getTags(pattern), level);
+
+  if (tags.length === 0) {
+    console.log(yellow("Not found any tag, comparing the whole history"));
+  }
+
+  const lastTag = tags[tags.length - 1];
+  const hasHeadCommits = lastTag ? await hasCommitsAfter(lastTag) : true;
+  const ranges = buildRanges(tags, hasHeadCommits);
+  const datalist = await Promise.all(ranges.map(collectRangeStats));
+  const rootDate = await runCommand(
+    "git log --reverse --format=%cs | head -n1",
+  );
+
+  displayResults(datalist, rootDate.trim());
+}
+
+main().catch(console.error);
