@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 const process = require("node:process");
-const { runCommand, sortBy } = require("../shared/__shared");
+const { runCommand } = require("../shared/__shared");
 const { green, red, gray, bold, yellow } = require("../shared/__colors");
 
 const USAGE = `
@@ -40,32 +40,26 @@ function parseShortstat(output) {
   };
 }
 
+// Without `from` the range starts at the beginning of the history, so the diff
+// is counted from the empty tree. Otherwise `git diff <to>` would compare
+// the tag with the working directory.
+function createRange(from, to) {
+  return {
+    label: `${from ?? ROOT_LABEL}..${to}`,
+    revRange: from ? `${from}..${to}` : to,
+    diffRange: `${from ?? EMPTY_TREE}..${to}`,
+    to,
+  };
+}
+
 function buildRanges(tags, hasHeadCommits) {
-  const ranges = tags.map((tag, index) => {
-    const previous = tags[index - 1];
-    return previous
-      ? { label: `${previous}..${tag}`, revRange: `${previous}..${tag}`, diffRange: `${previous}..${tag}`, to: tag } // prettier-ignore
-      : { label: `${ROOT_LABEL}..${tag}`, revRange: tag, diffRange: `${EMPTY_TREE}..${tag}`, to: tag }; // prettier-ignore
-  });
+  const ranges = tags.map((tag, index) => createRange(tags[index - 1], tag));
 
   if (!hasHeadCommits) {
     return ranges;
   }
 
-  const lastTag = tags[tags.length - 1];
-
-  if (!lastTag) {
-    return [
-      { label: `${ROOT_LABEL}..HEAD`, revRange: "HEAD", diffRange: `${EMPTY_TREE}..HEAD`, to: "HEAD" }, // prettier-ignore
-    ];
-  }
-
-  return ranges.concat({
-    label: `${lastTag}..HEAD`,
-    revRange: `${lastTag}..HEAD`,
-    diffRange: `${lastTag}..HEAD`,
-    to: "HEAD",
-  });
+  return ranges.concat(createRange(tags[tags.length - 1], "HEAD"));
 }
 
 // The `$` anchor drops the pre-releases (`v1.2.0-rc.1`), which otherwise
@@ -104,18 +98,17 @@ async function getTags(pattern) {
   return output.split("\n").filter(Boolean);
 }
 
-async function hasCommitsAfter(tag) {
-  const output = await runCommand(`git rev-list --count ${tag}..HEAD`);
-  return Number(output) > 0;
-}
+// Without tags the whole history is the only range, so there is always
+// something to display. Otherwise an empty range would be a row full of zeros.
+async function hasCommitsAfterTags(tags) {
+  const lastTag = tags[tags.length - 1];
 
-async function getRangeDate(reference) {
-  const command =
-    reference === "HEAD"
-      ? "git log -1 --format=%cs HEAD"
-      : `git log -1 --format=%cs ${reference}`;
-  const output = await runCommand(command);
-  return output.trim();
+  if (!lastTag) {
+    return true;
+  }
+
+  const output = await runCommand(`git rev-list --count ${lastTag}..HEAD`);
+  return Number(output) > 0;
 }
 
 async function collectRangeStats(range) {
@@ -123,7 +116,7 @@ async function collectRangeStats(range) {
     runCommand(`git rev-list --count ${range.revRange}`),
     runCommand(`git diff --shortstat ${range.diffRange}`),
     runCommand(`git log --format="%aN" ${range.revRange}`),
-    getRangeDate(range.to),
+    runCommand(`git log -1 --format=%cs ${range.to}`),
   ]);
 
   const uniqueAuthors = new Set(
@@ -134,15 +127,12 @@ async function collectRangeStats(range) {
     label: range.label,
     commits: Number(commits),
     authors: uniqueAuthors.size,
-    endDate,
+    endDate: endDate.trim(),
     ...parseShortstat(shortstat),
   };
 }
 
 function countDays(previousDate, currentDate) {
-  if (!previousDate || !currentDate) {
-    return null;
-  }
   const difference = new Date(currentDate) - new Date(previousDate);
   return Math.max(0, Math.round(difference / MILLISECONDS_IN_DAY));
 }
@@ -152,10 +142,14 @@ function formatDelta(value) {
   return `Δ${sign}${Math.abs(value)}`;
 }
 
+const pluralize = (count, noun) => `${count} ${noun}${count === 1 ? "" : "s"}`;
+
 // Colors have to be applied after padding, because ANSI escape codes
 // count towards the string length and would break the alignment.
 const padColored = (value, width, color) =>
   color(String(value).padStart(width));
+
+const paint = (value) => (value >= 0 ? green : red);
 
 function displayResults(datalist, rootDate) {
   if (datalist.length === 0) {
@@ -172,45 +166,47 @@ function displayResults(datalist, rootDate) {
     delta: widthOf((item) => formatDelta(item.added - item.removed)),
     files: widthOf((item) => String(item.files)),
   };
-  const total = { commits: 0, added: 0, removed: 0 };
 
-  console.log("");
-
-  datalist.forEach((item, index) => {
-    total.commits += item.commits;
-    total.added += item.added;
-    total.removed += item.removed;
-
-    const startDate = datalist[index - 1]?.endDate ?? rootDate;
-    const days = countDays(startDate, item.endDate);
-    const authors = `${item.authors} ${item.authors === 1 ? "author" : "authors"}`; // prettier-ignore
-    const meta = [item.endDate, days === null ? null : `${days}d`, authors]
-      .filter(Boolean)
-      .join(" · ");
-
+  const toRecord = (item, startDate) => {
     const delta = item.added - item.removed;
-    const columns = [
+    const meta = [
+      item.endDate,
+      `${countDays(startDate, item.endDate)}d`,
+      pluralize(item.authors, "author"),
+    ].join(" · ");
+
+    return [
       item.label.padEnd(widths.label),
       `${String(item.commits).padStart(widths.commits)} commits`,
       padColored(`+${item.added}`, widths.added, green),
       padColored(`-${item.removed}`, widths.removed, red),
-      padColored(formatDelta(delta), widths.delta, delta >= 0 ? green : red),
+      padColored(formatDelta(delta), widths.delta, paint(delta)),
       `${String(item.files).padStart(widths.files)} files`,
       gray(meta),
-    ];
+    ].join("  ");
+  };
 
-    console.log(columns.join("  "));
-  });
+  const records = datalist.map((item, index) =>
+    toRecord(item, datalist[index - 1]?.endDate ?? rootDate),
+  );
 
+  const sum = (cb) => datalist.reduce((result, item) => result + cb(item), 0);
+  const total = {
+    commits: sum((item) => item.commits),
+    added: sum((item) => item.added),
+    removed: sum((item) => item.removed),
+  };
   const totalDelta = total.added - total.removed;
+
   const summary = [
     `${total.commits} commits`,
     green(`+${total.added}`),
     red(`-${total.removed}`),
-    (totalDelta >= 0 ? green : red)(formatDelta(totalDelta)),
+    paint(totalDelta)(formatDelta(totalDelta)),
   ].join("  ");
 
-  console.log(`\n${bold("Total:")} ${summary}\n`);
+  console.log(`\n${records.join("\n")}\n`);
+  console.log(`${bold("Total:")} ${summary}\n`);
 }
 
 async function main() {
@@ -240,13 +236,11 @@ async function main() {
     console.log(yellow("Not found any tag, comparing the whole history"));
   }
 
-  const lastTag = tags[tags.length - 1];
-  const hasHeadCommits = lastTag ? await hasCommitsAfter(lastTag) : true;
-  const ranges = buildRanges(tags, hasHeadCommits);
-  const datalist = await Promise.all(ranges.map(collectRangeStats));
-  const rootDate = await runCommand(
-    "git log --reverse --format=%cs | head -n1",
-  );
+  const ranges = buildRanges(tags, await hasCommitsAfterTags(tags));
+  const [datalist, rootDate] = await Promise.all([
+    Promise.all(ranges.map(collectRangeStats)),
+    runCommand("git log --reverse --format=%cs | head -n1"),
+  ]);
 
   displayResults(datalist, rootDate.trim());
 }
