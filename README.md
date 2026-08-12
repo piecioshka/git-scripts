@@ -31,8 +31,6 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Copies the current branch name to the clipboard [[example](examples/git-copy-branch-name.example)].
 - `git fire <message>`
   - Creates a commit with all changes and pushes it to the origin [[example](examples/git-fire.example)].
-- `git is-private-repo`
-  - Checks if the current repository is private [[example](examples/git-is-private-repo.example)].
 - `git new-issue <issue_id>`
   - Useful for starting a new task: creates a worktree, branch, and pull request.
 - `git projects-births [path=./]`

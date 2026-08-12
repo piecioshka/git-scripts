@@ -15,13 +15,11 @@ const {
   isDirtyGitRepository,
   isGitWorktree,
 } = require("../shared/__git");
-const { isPrivateGitRepository } = require("../shared/__git_origin");
 const {
   dimGray,
   italic,
   red,
   green,
-  yellow,
   blue,
   magenta,
   brown,
@@ -64,7 +62,6 @@ async function describePathname(pathname) {
     }
   }
   result.branchName = await getGitBranchName(pathname);
-  result.isPrivateRepository = await isPrivateGitRepository(pathname);
   const end = Date.now();
   result.elapsedTime = end - start;
   return result;
@@ -86,7 +83,6 @@ function setupPromiseLoop(files, workspacePath) {
           updateStatus,
           isLocalOnlyRepository,
           branchName,
-          isPrivateRepository,
         } = descriptor;
         const output = [];
 
@@ -125,12 +121,6 @@ function setupPromiseLoop(files, workspacePath) {
         if (isRepository) {
           if (branchName) {
             output.push(magenta(`[${branchName}]`));
-          }
-
-          if (isPrivateRepository.private) {
-            output.push(yellow(`[🔐 private]`));
-          } else if (isPrivateRepository.private === null) {
-            output.push(dimGray(`[${isPrivateRepository.reason}]`));
           }
         }
 
