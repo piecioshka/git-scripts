@@ -5,11 +5,13 @@ const process = require("node:process");
 const { runCommand } = require("../shared/__shared");
 const {
   isFile,
-  isDirectory,
+  isHidden,
   getFilesAndDirectories,
 } = require("../shared/__filesystem");
 const {
   getGitBranchName,
+  getGitUpstream,
+  isGitBareRepository,
   isGitRepository,
   isLocalOnlyGitRepository,
   isDirtyGitRepository,
@@ -27,122 +29,239 @@ const {
   darkGreen,
 } = require("../shared/__colors");
 
-const ALREADY_UP_TO_DATE = "up-to-date";
+const USAGE = `
+    Usage: [DEBUG=true] git projects-update [path=./] [--verbose] [--jobs=N]
+
+    Options:
+
+        --verbose   print the output of every successful update
+        --jobs=N    number of repositories updated in parallel (default: 4)
+`;
+
+const DEFAULT_JOBS = 4;
+
+const UPDATE_STATUS = {
+  UP_TO_DATE: "up-to-date",
+  UPDATED: "updated",
+  FAILED: "failed",
+};
 
 let verboseEnabled = false;
 
 async function updateGitRepository(pathname) {
-  const command = "git -c color.ui=always pull --all";
-  return await runCommand(command, { cwd: pathname });
+  // LC_ALL=C: the "Already up to date." check below depends on English output.
+  // --ff-only: never start a merge or a rebase, so the repository can never be
+  // left in a conflicted state by a batch update.
+  const command = "LC_ALL=C git -c color.ui=always pull --ff-only";
+  try {
+    const output = await runCommand(command, { cwd: pathname });
+    const status = output.includes("Already up to date.")
+      ? UPDATE_STATUS.UP_TO_DATE
+      : UPDATE_STATUS.UPDATED;
+    return { status, output };
+  } catch (error) {
+    const output = String(error.message)
+      .replace(/^Command failed: .*\n?/, "")
+      .trim();
+    return { status: UPDATE_STATUS.FAILED, output };
+  }
 }
 
 async function describePathname(pathname) {
   const start = Date.now();
   const result = {};
   result.isFile = isFile(pathname);
-  result.isDirectory = isDirectory(pathname);
+  result.isBareRepository = isGitBareRepository(pathname);
   result.isRepository = isGitRepository(pathname);
   result.isWorktree = isGitWorktree(pathname);
+  result.isWorkingTree = result.isRepository || result.isWorktree;
   result.isLocalOnlyRepository = await isLocalOnlyGitRepository(pathname);
   result.isDirtyRepository = await isDirtyGitRepository(pathname);
-  const shouldBeUpdated =
-    (result.isRepository || result.isWorktree) &&
-    !result.isLocalOnlyRepository &&
-    !result.isDirtyRepository;
-  if (shouldBeUpdated) {
-    const status = await updateGitRepository(pathname);
-    if (typeof status === "string" && status.includes("Already up to date.")) {
-      result.updateStatus = ALREADY_UP_TO_DATE;
-    } else if (typeof status === "string") {
-      result.updateStatus = status;
-    } else if (status instanceof Error) {
-      result.updateStatus = false;
-    } else {
-      result.updateStatus = false;
-    }
-  }
   result.branchName = await getGitBranchName(pathname);
+  result.isDetached = result.isWorkingTree && result.branchName === "";
+  result.hasUpstream =
+    result.isWorkingTree &&
+    !result.isDetached &&
+    (await getGitUpstream(pathname)) !== null;
+  const shouldBeUpdated =
+    result.isWorkingTree &&
+    !result.isLocalOnlyRepository &&
+    !result.isDirtyRepository &&
+    !result.isDetached &&
+    result.hasUpstream;
+  if (shouldBeUpdated) {
+    const { status, output } = await updateGitRepository(pathname);
+    result.updateStatus = status;
+    result.updateOutput = output;
+  }
   const end = Date.now();
   result.elapsedTime = end - start;
   return result;
 }
 
-function setupPromiseLoop(files, workspacePath) {
-  return files.reduce((promise, file) => {
+function renderLabels(descriptor) {
+  const {
+    isFile,
+    isBareRepository,
+    isWorkingTree,
+    isWorktree,
+    isDirtyRepository,
+    isDetached,
+    hasUpstream,
+    updateStatus,
+    isLocalOnlyRepository,
+  } = descriptor;
+  const labels = [];
+
+  if (isFile) {
+    labels.push(blue("[file]"));
+    return labels;
+  }
+  if (isBareRepository) {
+    labels.push(dimGray("[bare repo]"));
+    return labels;
+  }
+  if (!isWorkingTree) {
+    labels.push(brown("[not repo]"));
+    return labels;
+  }
+
+  if (isWorktree) {
+    labels.push(dimGray(italic("[worktree]")));
+  }
+  if (isDirtyRepository) {
+    labels.push(red("[dirty repo]"));
+  }
+  if (isLocalOnlyRepository) {
+    labels.push("[local repo]");
+  } else if (isDetached) {
+    labels.push(brown("[detached]"));
+  } else if (!hasUpstream) {
+    labels.push(brown("[no upstream]"));
+  }
+
+  switch (updateStatus) {
+    case UPDATE_STATUS.UP_TO_DATE:
+      labels.push(darkGreen(`[${UPDATE_STATUS.UP_TO_DATE}]`));
+      break;
+    case UPDATE_STATUS.UPDATED:
+      labels.push(green(`[${UPDATE_STATUS.UPDATED}]`));
+      break;
+    case UPDATE_STATUS.FAILED:
+      labels.push(red("[update failed]"));
+      break;
+    default:
+      break;
+  }
+
+  return labels;
+}
+
+function printDescriptor(pathname, descriptor) {
+  const { elapsedTime, isWorkingTree, branchName, updateStatus, updateOutput } =
+    descriptor;
+  const output = renderLabels(descriptor);
+
+  output.push(path.basename(pathname));
+
+  if (isWorkingTree && branchName) {
+    output.push(magenta(`[${branchName}]`));
+  }
+
+  output.push(gray(italic(`+${elapsedTime}ms`)));
+
+  console.log(output.join(" "));
+
+  const isFailed = updateStatus === UPDATE_STATUS.FAILED;
+  const isUpdated = updateStatus === UPDATE_STATUS.UPDATED;
+  if (updateOutput && (isFailed || (verboseEnabled && isUpdated))) {
+    console.log(updateOutput);
+  }
+}
+
+async function processWorkspace(files, workspacePath, jobs) {
+  const tasks = files.map((file) => {
     const pathname = path.resolve(workspacePath, file);
+    return { pathname, task: () => describePathname(pathname) };
+  });
+  const results = tasks.map(() => null);
+  let next = 0;
 
-    return promise
-      .then(() => describePathname(pathname))
-      .then((descriptor) => {
-        const {
-          elapsedTime,
-          isFile,
-          isRepository,
-          isWorktree,
-          isDirtyRepository,
-          updateStatus,
-          isLocalOnlyRepository,
-          branchName,
-        } = descriptor;
-        const output = [];
+  async function worker() {
+    while (next < tasks.length) {
+      const index = next++;
+      results[index] = tasks[index]
+        .task()
+        .then((descriptor) => ({ descriptor }))
+        .catch((error) => ({ error }));
+      await results[index];
+    }
+  }
 
-        if (isFile) {
-          output.push(blue("[file]"));
-        } else if (isRepository) {
-          if (isDirtyRepository) {
-            output.push(red("[dirty repo]"));
-          }
+  const workers = Array.from({ length: Math.min(jobs, tasks.length) }, () =>
+    worker(),
+  );
 
-          if (updateStatus) {
-            switch (updateStatus) {
-              case ALREADY_UP_TO_DATE:
-                output.push(darkGreen(`[${ALREADY_UP_TO_DATE}]`));
-                break;
-              case false:
-                output.push(red("[update failed]"));
-                break;
-              default:
-                output.push(green("[updated]"));
-                break;
-            }
-          }
+  let failures = 0;
+  for (let index = 0; index < tasks.length; index++) {
+    while (results[index] === null) {
+      await Promise.race(workers.concat(results.filter(Boolean)));
+    }
+    const { pathname } = tasks[index];
+    const { descriptor, error } = await results[index];
+    if (error) {
+      failures += 1;
+      console.error(
+        `${red("[error]")} ${path.basename(pathname)}: ${error.message}`,
+      );
+      continue;
+    }
+    printDescriptor(pathname, descriptor);
+    if (descriptor.updateStatus === UPDATE_STATUS.FAILED) {
+      failures += 1;
+    }
+  }
+  await Promise.all(workers);
+  return failures;
+}
 
-          if (isLocalOnlyRepository) {
-            output.push("[local repo]");
-          }
-        } else if (isWorktree) {
-          output.push(dimGray(italic("[worktree]")));
-        } else {
-          output.push(brown("[not repo]"));
-        }
-
-        output.push(path.basename(pathname));
-
-        if (isRepository) {
-          if (branchName) {
-            output.push(magenta(`[${branchName}]`));
-          }
-        }
-
-        output.push(gray(italic(`+${elapsedTime}ms`)));
-
-        console.log(output.join(" "));
-        if (verboseEnabled && updateStatus && updateStatus !== ALREADY_UP_TO_DATE) {
-          console.log(updateStatus);
-        }
-      })
-      .catch((err) => {
-        console.error(err.message);
-      });
-  }, Promise.resolve());
+function parseArgs(argv) {
+  const options = { verbose: false, jobs: DEFAULT_JOBS, workspacePath: null };
+  for (const arg of argv) {
+    if (arg === "--help" || arg === "-h") {
+      console.log(USAGE);
+      process.exit(0);
+    } else if (arg === "--verbose") {
+      options.verbose = true;
+    } else if (arg.startsWith("--jobs=")) {
+      const jobs = Number(arg.slice("--jobs=".length));
+      if (!Number.isInteger(jobs) || jobs < 1) {
+        throw new Error(`Invalid value for --jobs: ${arg}`);
+      }
+      options.jobs = jobs;
+    } else if (arg.startsWith("-")) {
+      throw new Error(`Unknown option: ${arg}\n${USAGE}`);
+    } else if (options.workspacePath === null) {
+      options.workspacePath = arg;
+    } else {
+      throw new Error(`Unexpected argument: ${arg}\n${USAGE}`);
+    }
+  }
+  return options;
 }
 
 async function main() {
-  const args = process.argv.slice(2);
-  verboseEnabled = args.includes("--verbose");
-  const workspacePath = args.find(arg => !arg.startsWith("--")) || process.cwd();
-  const files = getFilesAndDirectories(workspacePath);
-  await setupPromiseLoop(files, workspacePath);
+  const options = parseArgs(process.argv.slice(2));
+  verboseEnabled = options.verbose;
+  const workspacePath = options.workspacePath || process.cwd();
+  const files = getFilesAndDirectories(workspacePath)
+    .filter((file) => !isHidden(file))
+    .sort();
+  const failures = await processWorkspace(files, workspacePath, options.jobs);
+  process.exitCode = failures > 0 ? 1 : 0;
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  console.error(err.message);
+  process.exitCode = 1;
+});
