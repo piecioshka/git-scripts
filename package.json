@@ -6,7 +6,7 @@
   "scripts": {
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "lint": "shellcheck -x bin/* shared/*.sh test.sh",
+    "lint": "grep -l \"^#!/usr/bin/env bash\" bin/* shared/*.sh test.sh | xargs shellcheck -x",
     "test": "node --test \"shared/**/*.test.js\""
   },
   "author": {

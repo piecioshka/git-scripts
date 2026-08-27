@@ -82,6 +82,13 @@ git stats-between-tags --level=major
 
 ![](demo/git-stats-between-tags.gif)
 
+## Development
+
+```bash
+npm install
+./test.sh # shellcheck, unit tests and Prettier check
+```
+
 ## Related projects
 
 - https://github.com/aarek/git-tools
