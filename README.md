@@ -55,8 +55,8 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - With `--level` only the tags of the given semver level are compared, so the changes of the skipped tags are merged into the surrounding range [[example](examples/git-stats-between-tags-level.example)].
 - `git sync [--verbose]`
   - Checks if the local and remote repository states are the same [[example](examples/git-sync.example)] [[example-2](examples/git-sync-verbose.example)].
-- `git tags-recreate-from-commits`
-  - Recreates tags based on commit messages [[example](examples/git-tags-recreate-versions-from-commits.example)].
+- `git tags-recreate-versions-from-commits`
+  - Creates the annotated tags `vX.Y.Z` for the commits whose subject is a version `X.Y.Z`, skipping the tags that already exist [[example](examples/git-tags-recreate-versions-from-commits.example)].
 - `git tags-refresh`
   - Refreshes tags in the current repository.
 - `git update-default-branch-master-to-main`

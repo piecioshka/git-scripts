@@ -1,24 +1,22 @@
 #!/usr/bin/env bash
 
-# Exit on error
 set -e
 
-# Find all commits with semantic version numbers in their messages
-# and create annotated tags for them if they don't already exist
+# Finds all commits with a semantic version as the whole subject (e.g. "1.2.3")
+# and creates the annotated tags "v1.2.3" for them, unless they already exist.
 
-# Get commit history with hash and subject
-git log --format='%H %s' | \
-  # Filter commits with semantic version format (e.g., "1.2.3")
-  grep -E '^[0-9a-f]{40} [0-9]+\.[0-9]+\.[0-9]+$' | \
-  # Process each matching commit
-  while read sha tag; do
-    # Check if tag doesn't already exist
-    if test -z "$(git tag -l "$tag")"; then
-      # Create annotated tag with "v" prefix (e.g., "v1.2.3")
-      if git tag -a "v$tag" -m "v$tag" "$sha" 2>/dev/null; then
-        echo "Created tag v$tag for commit $sha"
-      else
-        echo "Failed to create tag v$tag for commit $sha" >&2
-      fi
+git log --format='%H %s' |
+  grep -E '^[0-9a-f]{40} [0-9]+\.[0-9]+\.[0-9]+$' |
+  while read -r sha version; do
+    tag="v${version}"
+
+    if git rev-parse --quiet --verify "refs/tags/${tag}" > /dev/null; then
+      continue
+    fi
+
+    if git tag -a "$tag" -m "$tag" "$sha" 2> /dev/null; then
+      echo "Created tag $tag for commit $sha"
+    else
+      echo "Failed to create tag $tag for commit $sha" >&2
     fi
   done
