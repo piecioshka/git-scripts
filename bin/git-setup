@@ -3,9 +3,10 @@
 set -e
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=shared/__shared.sh
 source "$script_dir/../shared/__shared.sh"
 
-__print_command_and_eval "git init"
-__print_command_and_eval "git add . -v"
-__print_command_and_eval "git commit -am 'Initialize project'"
-__print_command_and_eval "git branch -m main"
+__print_command_and_eval git init
+__print_command_and_eval git add . -v
+__print_command_and_eval git commit -m "Initialize project"
+__print_command_and_eval git branch -m main
