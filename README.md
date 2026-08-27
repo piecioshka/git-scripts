@@ -37,8 +37,9 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Displays the start dates of projects in the workspace [[example](examples/git-projects-births.example)].
 - `git projects-daily-status [path=./]`
   - Displays the status of all projects in the workspace [[example](examples/git-projects-daily-status.example)].
-- `[DEBUG=true] git projects-update [path=./] [--verbose]`
-  - Updates all projects in the workspace [[example](examples/git-projects-update.example)].
+- `[DEBUG=true] git projects-update [path=./] [--verbose] [--jobs=N]`
+  - Updates all projects in the workspace with `git pull --ff-only`, `N` repositories at a time (default: 4) [[example](examples/git-projects-update.example)].
+  - Skips repositories that are dirty (modified tracked files), local-only, detached or without an upstream, and never leaves a repository in a merge or rebase; exits with code `1` when any update fails.
 - `git publish-branch`
   - Publishes the current branch to the origin and sets the upstream.
 - `git repo-origin-url`

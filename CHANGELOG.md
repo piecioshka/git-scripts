@@ -2,6 +2,7 @@
 
 All notable changes to this project, newest first.
 
+- 2026-08-27 — Fixed `git projects-update`: pulls with `--ff-only` so a batch update can never leave a repository in a merge or rebase, prints the repository line with `[update failed]` and the reason instead of a bare error, checks dirtiness and origin of Git worktrees, ignores untracked files, labels detached HEADs, branches without an upstream and bare repositories, skips hidden entries, sorts the output, runs up to `--jobs=N` updates in parallel, rejects unknown options and exits with code `1` on failures. ([`de5209d`])
 - 2026-08-12 — **Removed** `git is-private-repo`, and the `[🔐 private]` label in `git projects-update`; the workspace commands no longer query the GitHub, GitLab and Bitbucket APIs, which makes them faster and immune to rate limits. ([`60c139e`])
 - 2026-08-03 — Added `git stats-between-tags [pattern] [--level=minor|major]`: displays the number of commits and the added and removed lines between consecutive tags, treating `HEAD` as a tag; with `--level` only the tags of the given semver level are compared and the skipped ranges are merged. Ships with a recorded `vhs` demo. ([`b0e5946`], [`7af6451`], [`c667b1f`])
 - 2026-06-25 — Changed the license link in `README.md` to use `https://`. ([#5], [`3160a67`])
@@ -52,6 +53,7 @@ All notable changes to this project, newest first.
 [#3]: https://github.com/piecioshka/git-scripts/pull/3
 [#4]: https://github.com/piecioshka/git-scripts/pull/4
 [#5]: https://github.com/piecioshka/git-scripts/pull/5
+[`de5209d`]: https://github.com/piecioshka/git-scripts/commit/de5209d4bf3e1e460d8f673006152b4b2a68006e
 [`60c139e`]: https://github.com/piecioshka/git-scripts/commit/60c139ef1c372cb2a20a8d9da0a05c049f8a03cf
 [`c667b1f`]: https://github.com/piecioshka/git-scripts/commit/c667b1ffa2ff0013d4dcc69b8a27aa9b4317bc16
 [`7af6451`]: https://github.com/piecioshka/git-scripts/commit/7af6451a89b1081ec7710cddb72046e814a8b3f9

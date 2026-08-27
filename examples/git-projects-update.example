@@ -1,87 +1,39 @@
 > git projects-update
 [updated] ava-live [main]
-[updated] battery-life-extender [main]
+[up-to-date] battery-life-extender [main]
 [updated] boilerplate-jasmine-typescript [main]
-[updated] dicts [main]
-[updated] eslint-config-piecioshka [main]
-[updated] fakes [main]
-[updated] fakes-auth [main]
-[* dirty] git-scripts [main] [🔐 private]
-[updated] github-track-followers-setup [main]
-[updated] innerhtml-vs-innertext-vs-textcontent [main]
-[updated] offline-strategy [main]
-[updated] test-solidarity [main]
+[dirty repo] dicts [main]
+[update failed] eslint-config-piecioshka [main]
+From github.com:piecioshka/eslint-config-piecioshka
+   2616d10..bd01feb  main       -> origin/main
+fatal: Not possible to fast-forward, aborting.
+[detached] fakes
+[no upstream] fakes-auth [feature]
+[local repo] git-scripts [main]
+[worktree] [updated] github-track-followers-setup [wt1]
+[not repo] innerhtml-vs-innertext-vs-textcontent
+[bare repo] offline-strategy.git
+[file] README.md
+[up-to-date] test-solidarity [main]
 
-> DEBUG=true git projects-update
-==> git config --get remote.origin.url
-==> git status --porcelain 2>/dev/null | wc -l
-==> git -c color.ui=always pull --all
-==> git branch --show-current
-==> git config --get remote.origin.url
+> git projects-update --verbose
 [updated] ava-live [main]
+Updating 2616d10..bd01feb
+Fast-forward
+ a.txt | 1 +
+ 1 file changed, 1 insertion(+)
+[up-to-date] battery-life-extender [main]
+
+> DEBUG=true git projects-update --jobs=1
 ==> git config --get remote.origin.url
-==> git status --porcelain 2>/dev/null | wc -l
-==> git -c color.ui=always pull --all
+==> git status --porcelain --untracked-files=no 2>/dev/null | wc -l
 ==> git branch --show-current
+==> git rev-parse --abbrev-ref --symbolic-full-name @{u}
+==> LC_ALL=C git -c color.ui=always pull --ff-only
+[up-to-date] ava-live [main]
 ==> git config --get remote.origin.url
+==> git status --porcelain --untracked-files=no 2>/dev/null | wc -l
+==> git branch --show-current
+==> git rev-parse --abbrev-ref --symbolic-full-name @{u}
+==> LC_ALL=C git -c color.ui=always pull --ff-only
 [updated] battery-life-extender [main]
-==> git config --get remote.origin.url
-==> git status --porcelain 2>/dev/null | wc -l
-==> git -c color.ui=always pull --all
-==> git branch --show-current
-==> git config --get remote.origin.url
-[updated] boilerplate-jasmine-typescript [main]
-==> git config --get remote.origin.url
-==> git status --porcelain 2>/dev/null | wc -l
-==> git -c color.ui=always pull --all
-==> git branch --show-current
-==> git config --get remote.origin.url
-[updated] dicts [main]
-==> git config --get remote.origin.url
-==> git status --porcelain 2>/dev/null | wc -l
-==> git -c color.ui=always pull --all
-==> git branch --show-current
-==> git config --get remote.origin.url
-[updated] eslint-config-piecioshka [main]
-==> git config --get remote.origin.url
-==> git status --porcelain 2>/dev/null | wc -l
-==> git -c color.ui=always pull --all
-==> git branch --show-current
-==> git config --get remote.origin.url
-[updated] fakes [main]
-==> git config --get remote.origin.url
-==> git status --porcelain 2>/dev/null | wc -l
-==> git -c color.ui=always pull --all
-==> git branch --show-current
-==> git config --get remote.origin.url
-[updated] fakes-auth [main]
-==> git config --get remote.origin.url
-==> git status --porcelain 2>/dev/null | wc -l
-==> git -c color.ui=always pull --all
-==> git branch --show-current
-==> git config --get remote.origin.url
-[* dirty] git-scripts [main] [🔐 private]
-==> git config --get remote.origin.url
-==> git status --porcelain 2>/dev/null | wc -l
-==> git -c color.ui=always pull --all
-==> git branch --show-current
-==> git config --get remote.origin.url
-[updated] github-track-followers-setup [main]
-==> git config --get remote.origin.url
-==> git status --porcelain 2>/dev/null | wc -l
-==> git -c color.ui=always pull --all
-==> git branch --show-current
-==> git config --get remote.origin.url
-[updated] innerhtml-vs-innertext-vs-textcontent [main]
-==> git config --get remote.origin.url
-==> git status --porcelain 2>/dev/null | wc -l
-==> git -c color.ui=always pull --all
-==> git branch --show-current
-==> git config --get remote.origin.url
-[updated] offline-strategy [main]
-==> git config --get remote.origin.url
-==> git status --porcelain 2>/dev/null | wc -l
-==> git -c color.ui=always pull --all
-==> git branch --show-current
-==> git config --get remote.origin.url
-[updated] test-solidarity [main]
