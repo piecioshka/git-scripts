@@ -12,20 +12,33 @@ const USAGE = `
         $ git bars "Piotr Kowalski" 2021-04
 `;
 
-const DAYS_IN_MONTH_MAP = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-
 const isSingleYear = (period) => /^\d{4}$/.test(period);
 const isMonth = (period) => /^\d{4}-\d{2}$/.test(period);
 // https://graphemica.com/%E2%96%A0
-const bars = (count) => Array.from({ length: count }).fill("■").join("");
+const bars = (count) => "■".repeat(count);
 
-async function getShortlog({ author, labelLength, periodStart, periodEnd }) {
-  const command = `git shortlog -sn --author="${author}" --after="${periodStart}" --before="${periodEnd}" < /dev/tty`;
+// `new Date(year, month, 0)` is the last day of the previous month, so with
+// the 1-based month it returns the length of the requested month, including
+// February of a leap year.
+const daysInMonth = (year, month) => new Date(year, month, 0).getDate();
+
+const quote = (value) => `"${value.replace(/(["\\$`])/g, "\\$1")}"`;
+
+// `git shortlog` matches the author with a regular expression, so the output
+// may contain a line for every matching author. Sum them up.
+function parseShortlog(output) {
+  return output
+    .split("\n")
+    .map((line) => Number(line.trim().split(/\s+/)[0]))
+    .filter(Number.isFinite)
+    .reduce((sum, value) => sum + value, 0);
+}
+
+async function getShortlog({ author, label, periodStart, periodEnd }) {
+  // HEAD is passed explicitly, otherwise `git shortlog` reads the log from stdin.
+  const command = `git shortlog -sn --author=${quote(author)} --since=${quote(periodStart)} --before=${quote(periodEnd)} HEAD`;
   const output = await runCommand(command);
-  return {
-    period: periodStart.substring(0, labelLength),
-    value: Number(output.replace(author, "").trim()),
-  };
+  return { period: label, value: parseShortlog(output) };
 }
 
 function displayBars(datalist) {
@@ -38,43 +51,49 @@ function displayBars(datalist) {
   console.log(`\n${quantity} commits\n${result}`);
 }
 
-function onlyFulfilled(settled) {
-  return settled.filter((x) => x.status === "fulfilled").map((x) => x.value);
-}
-
 function createCollection(length, cb) {
-  return Array.from({ length })
-    .fill(null)
-    .map((_, index) => cb(index));
+  return Array.from({ length }, (_, index) => cb(index));
 }
 
-function importData({ author, period }) {
+// The ranges are half-open: `--since` is inclusive and `--before` points at
+// the first second of the next period, so no commit is counted twice.
+function buildPeriods(period) {
   if (isSingleYear(period)) {
-    return Promise.allSettled(
-      createCollection(12, (index) => {
-        return getShortlog({
-          author,
-          labelLength: 7,
-          periodStart: `${period}-${pad2Zeros(index + 1)}-01 00:00:00`,
-          periodEnd: `${period}-${pad2Zeros(index + 1)}-31 23:59:59`,
-        });
-      }),
-    );
-  } else if (isMonth(period)) {
-    const month = Number(period.substring(period.length - 2, period.length));
-    return Promise.allSettled(
-      createCollection(DAYS_IN_MONTH_MAP[month - 1], (index) => {
-        return getShortlog({
-          author,
-          labelLength: 10,
-          periodStart: `${period}-${pad2Zeros(index + 1)} 00:00:00`,
-          periodEnd: `${period}-${pad2Zeros(index + 1)} 23:59:59`,
-        });
-      }),
-    );
-  } else {
-    throw new Error("unsupported");
+    const year = Number(period);
+    return createCollection(12, (index) => {
+      const month = pad2Zeros(index + 1);
+      const days = daysInMonth(year, index + 1);
+      return {
+        label: `${year}-${month}`,
+        periodStart: `${year}-${month}-01 00:00:00`,
+        periodEnd: `${year}-${month}-${days} 23:59:59`,
+      };
+    });
   }
+
+  if (isMonth(period)) {
+    const [year, month] = period.split("-").map(Number);
+    return createCollection(daysInMonth(year, month), (index) => {
+      const day = pad2Zeros(index + 1);
+      const label = `${year}-${pad2Zeros(month)}-${day}`;
+      return {
+        label,
+        periodStart: `${label} 00:00:00`,
+        periodEnd: `${label} 23:59:59`,
+      };
+    });
+  }
+
+  throw new Error(`Unsupported period: ${period}`);
+}
+
+async function importData({ author, period }) {
+  const results = [];
+  // Sequentially: one git process at a time instead of 31 in parallel.
+  for (const range of buildPeriods(period)) {
+    results.push(await getShortlog({ author, ...range }));
+  }
+  return results;
 }
 
 async function main() {
@@ -86,9 +105,10 @@ async function main() {
     return void process.exit(1);
   }
 
-  const data = await importData({ author, period });
-  const resolved = onlyFulfilled(data);
-  displayBars(resolved);
+  displayBars(await importData({ author, period }));
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  console.error(error.message);
+  process.exitCode = 1;
+});
