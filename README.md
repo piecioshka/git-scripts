@@ -62,7 +62,7 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
 - `git update-default-branch-master-to-main`
   - Changes the default branch from `master` to `main`.
 - `git update-default-branch-master-to-main-in-workspace`
-  - Changes the default branch from `master` to `main` in all repositories in the workspace.
+  - Changes the default branch from `master` to `main` in all your GitHub repositories, cloning each of them to a temporary directory (requires `gh` and `jq`); the archived ones are listed to change manually.
 - `git user`
   - Displays the current user [[example](examples/git-user.example)].
 - `git zip <name>`

@@ -3,6 +3,7 @@
 set -e
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=shared/__shared.sh
 source "$script_dir/../shared/__shared.sh"
 
 repos=$(gh repo list --limit 1000 --json name,isArchived,sshUrl,defaultBranchRef | jq -r '.[] | select(.defaultBranchRef.name == "master" and .isArchived == false) | .sshUrl')
@@ -19,25 +20,29 @@ size=$(count "$repos")
 
 __print_title "Active repos: ${__COLOR_CYAN}$size${__COLOR_RESET}"
 
+workdir=$(mktemp -d)
+trap 'rm -rf "$workdir"' EXIT
+
 i=0
 for repo in $repos; do
-  i=$((i+1))
+  i=$((i + 1))
   prefix="[${__COLOR_RED}$i${__COLOR_RESET}/${__COLOR_CYAN}$size${__COLOR_RESET}]"
   __print_action "$prefix Cloning ${__COLOR_YELLOW}${__COLOR_UNDERLINED}$repo${__COLOR_RESET}"
-  git clone "$repo"
   repo_name=$(basename "$repo" .git)
-  cd "$repo_name"
-  __print_command_and_eval "git branch -m main"
-  __print_command_and_eval "git publish-branch"
-  __print_command_and_eval "gh repo edit --default-branch main"
-  __print_command_and_eval "git delete-branch master"
-  cd ..
-  rm -rf "$repo_name"
+  git clone --quiet "$repo" "$workdir/$repo_name"
+  (
+    cd "$workdir/$repo_name"
+    __print_command_and_eval git branch -m main
+    __print_command_and_eval git publish-branch
+    __print_command_and_eval gh repo edit --default-branch main
+    __print_command_and_eval git push origin --delete master
+  )
+  rm -rf "${workdir:?}/$repo_name"
 done
 
 echo "----------------------------------------"
 
-archive_repos=$(gh repo list --limit 1000 --json name,isArchived | jq -r '.[] | select(.isArchived == true) | .name')
+archive_repos=$(gh repo list --limit 1000 --json name,isArchived,defaultBranchRef | jq -r '.[] | select(.isArchived == true and .defaultBranchRef.name == "master") | .name')
 
 size=$(count "$archive_repos")
 __print_title "Archived repos: ${__COLOR_CYAN}$size${__COLOR_RESET}"
