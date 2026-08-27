@@ -1,18 +1,20 @@
 /app/ > git squash-all-commits
-==> app > rm -rfv .git/
+==> [x] # Copying origin URL: git@github.com:piecioshka/test.git
+WARNING: the whole history, all branches, tags and stashes will be removed
+==> app > rm -rf .git/
 
 ==> app > git setup
 ==> app > git init
-Initialized empty Git repository in /private/tmp/test/.git/
+Initialized empty Git repository in /app/.git/
 
 ==> app > git add . -v
 add 'example-file.md'
 
-==> app > git commit -am 'Initialize project'
+==> app > git commit -m "Initialize project"
 [main (root-commit) b92ea3d] Initialize project
  1 file changed, 0 insertions(+), 0 deletions(-)
  create mode 100644 example-file.md
 
 ==> app > git branch -m main
 
-==> app > git config --set remote.origin.url git@github.com:piecioshka/test.git
+==> app > git remote add origin git@github.com:piecioshka/test.git
