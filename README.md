@@ -23,8 +23,8 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Displays the revision count for the specified period [[example](examples/git-bars.example)].
 - `git changed-monorepo-packages [--oneline] [--main]`
   - Displays changed packages [[example](examples/git-changed-monorepo-packages.example)].
-- `git changed-monorepo-packages-status <folder_with_packages>`
-  - Displays the status of packages.
+- `git changed-monorepo-packages-status [folder=packages] [base=main]`
+  - Displays the names of the changed packages in one line, compared with the `base` branch.
 - `git clone-path <repository_url> <path/to/folder-or-file>`
   - Clones the repository to the specified path.
 - `git copy-branch-name`

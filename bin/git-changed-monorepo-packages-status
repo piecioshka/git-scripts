@@ -2,13 +2,16 @@
 
 set -e
 
-folder=${1:-packages}
+folder="${1:-packages}"
+base="${2:-main}"
 
-echo $folder;
+if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+  echo "Usage: $(basename "$0") [folder=packages] [base=main]"
+  exit 1
+fi
 
-git --no-pager diff main.. --name-only |
-  grep \"^packages/\" |
+git --no-pager diff "${base}.." --name-only |
+  grep "^${folder}/" |
   cut -f2 -d/ |
-  sort |
-  uniq |
-  xargs echo;
+  sort -u |
+  xargs echo
