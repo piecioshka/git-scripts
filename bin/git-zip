@@ -3,35 +3,32 @@
 set -e
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=shared/__shared.sh
 source "$script_dir/../shared/__shared.sh"
 
-fileName=${1}
+file_name="${1}"
 
-if [ -z "$fileName" ]; then
-  echo "Usage: $(basename $0) <path/to/package.zip>"
+if [ -z "$file_name" ]; then
+  echo "Usage: $(basename "$0") <path/to/package.zip>"
   exit 1
 fi
 
 __print_action "Verify if repository has no changes"
 
-status=$(git status --untracked-files=no -sb)
-lines=$(echo "$status" | wc -l)
-
-if [ "$lines" -eq 1 ]; then
+if [ -z "$(git status --untracked-files=no --porcelain)" ]; then
   __print_title "No changes, building from clean repository"
-  git archive --format zip --output "$fileName" HEAD
-  __print_action "Package created: \"$fileName\""
+  git archive --format zip --output "$file_name" HEAD
+  __print_action "Package created: \"$file_name\""
 else
   __print_title "Uncommitted changes, building from modified repository"
   git status --untracked-files=no -s
   echo ""
 
   stash=$(git stash create)
-  echo "stash: '$stash'"
   if [ -z "$stash" ]; then
-    echo "Error: cannot create a stash"
+    __print_error "ERROR: cannot create a stash"
     exit 1
   fi
-  git archive --format zip --output "$fileName" "$stash"
-  __print_title "Package created: \"$fileName\""
+  git archive --format zip --output "$file_name" "$stash"
+  __print_action "Package created: \"$file_name\""
 fi
