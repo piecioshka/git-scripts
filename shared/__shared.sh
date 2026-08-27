@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=shared/__colors.sh
 source "$script_dir/__colors.sh"
 
 function __print_info {
@@ -28,20 +29,33 @@ function __print_action {
 }
 
 function __print_command {
-  command="${1}"
-  current_dir="${2:-$(pwd)}"
+  local cmd="${1}"
+  local current_dir="${2:-$(pwd)}"
 
-  if [ -z "$command" ]; then
-    echo "Usage: __print_command <command> [current_dir=$(pwd)]"
-    exit 1
+  if [ -z "$cmd" ]; then
+    echo "Usage: __print_command <command> [current_dir=\$(pwd)]" >&2
+    return 1
   fi
 
-  folder_name=$(basename $current_dir)
-  echo -e "${__COLOR_BLUE_LIGHT}==> ${__COLOR_GREEN}${folder_name}${__COLOR_BLUE} > ${__COLOR_RESET}$command"
+  local folder_name
+  folder_name=$(basename "$current_dir")
+  echo -e "${__COLOR_BLUE_LIGHT}==> ${__COLOR_GREEN}${folder_name}${__COLOR_BLUE} > ${__COLOR_RESET}$cmd"
 }
 
+# Prints and runs a command.
+#
+#   __print_command_and_eval "git status -s"        # one argument: evaluated by the shell
+#   __print_command_and_eval git commit -m "$msg"   # argument list: executed as is
+#
+# Pass an argument list whenever the command contains user input, so that
+# quotes and spaces in the input cannot break or change the command.
 function __print_command_and_eval {
-  __print_command "${1}"
-  eval "${1}"
+  if [ "$#" -eq 1 ]; then
+    __print_command "${1}"
+    eval "${1}"
+  else
+    __print_command "$*"
+    "$@"
+  fi
   echo ""
 }

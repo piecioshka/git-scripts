@@ -7,7 +7,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "shellcheck -x bin/* shared/*.sh test.sh",
-    "test": "node --test shared/"
+    "test": "node --test \"shared/**/*.test.js\""
   },
   "author": {
     "name": "Piotr Kowalski",

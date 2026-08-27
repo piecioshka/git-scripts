@@ -8,17 +8,24 @@ function __print_command(command) {
   }
 }
 
+// Resolves with the trimmed stdout only. Warnings printed by Git to stderr
+// must not leak into the output, because callers parse it (e.g. Number()).
+// When the command fails, the error message carries both streams.
 function runCommand(command, { cwd } = { cwd: "." }) {
   __print_command(command);
   return new Promise((resolve, reject) => {
     exec(command, { cwd }, (err, stdout, stderr) => {
       if (err) {
         if (DEBUG) {
-          console.debug('[error]', err);
+          console.debug("[error]", err);
         }
+        const details = `${stdout}${stderr}`.trim();
+        err.message = details
+          ? `Command failed: ${command}\n${details}`
+          : `Command failed: ${command}`;
         return reject(err);
       }
-      resolve((stdout + stderr).trim().replace(/\n$/, ""));
+      resolve(stdout.trim());
     });
   });
 }
