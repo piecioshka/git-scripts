@@ -3,6 +3,7 @@
 set -e
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=shared/__shared.sh
 source "$script_dir/../shared/__shared.sh"
 
 verboseEnabled=$([[ ${1} == "--verbose" ]] && echo true || echo false)
