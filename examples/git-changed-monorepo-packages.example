@@ -1,10 +1,10 @@
 > tree
 .
 ├── packages
-│   ├── feature-a
-│   │   └── README.md
-│   └── utils
-│       └── README.md
+│   ├── feature-a
+│   │   └── README.md
+│   └── utils
+│       └── README.md
 └── README.md
 
 3 directories, 3 files
@@ -17,6 +17,10 @@
 
 > git commit -m "Add hello world" --quiet
 
-> git changed-monorepo-packages --main
+> git changed-monorepo-packages
 List of packages with changed files:
+
 - utils
+
+> git changed-monorepo-packages --oneline
+utils
