@@ -1,0 +1,24 @@
+{
+  "name": "git-scripts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Git utility scripts",
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "shellcheck -x bin/* shared/*.sh test.sh",
+    "test": "node --test shared/"
+  },
+  "author": {
+    "name": "Piotr Kowalski",
+    "email": "piecioshka@gmail.com"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/piecioshka/git-scripts.git"
+  },
+  "devDependencies": {
+    "prettier": "3.9.6"
+  }
+}
