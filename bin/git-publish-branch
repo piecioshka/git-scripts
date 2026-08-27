@@ -2,7 +2,7 @@
 
 set -e
 
-# Git push branch to origin with the same name.
+# Pushes the current branch to origin under the same name and sets the upstream.
 branch="$(git rev-parse --abbrev-ref HEAD)"
-echo -e 'Track your local branch to remove: '$branch
-git push -u origin "${branch}"
+echo "Tracking the local branch on the remote: $branch"
+git push -u origin "$branch"
