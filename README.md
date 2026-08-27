@@ -44,8 +44,8 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Publishes the current branch to the origin and sets the upstream.
 - `git repo-origin-url`
   - Displays the repository URL (`remote.origin.url`).
-- `git run-on-nested-repos COMMAND`
-  - Runs the specified command in all nested Git repositories [[example](examples/git-run-on-nested-repos.example)].
+- `git run-on-nested-repos COMMAND [--max-depth=5]`
+  - Runs the specified command in all nested Git repositories, exits with code `1` when the command fails in any of them [[example](examples/git-run-on-nested-repos.example)].
 - `git setup`
   - Initializes the repository and creates the initial revision [[example](examples/git-setup.example)].
 - `git squash-all-commits`

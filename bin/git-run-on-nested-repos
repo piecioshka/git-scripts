@@ -1,67 +1,94 @@
 #!/usr/bin/env node
 
+const path = require("node:path");
+const process = require("node:process");
 const { isDirectory, getDirectories } = require("../shared/__filesystem");
-const { isGitRepository } = require("../shared/__git");
+const { isGitWorkingTree } = require("../shared/__git");
 const { runCommand } = require("../shared/__shared");
-const { underline, bold, blue, yellow } = require("../shared/__colors");
+const { underline, bold, blue, yellow, red } = require("../shared/__colors");
 
-const command = process.argv[2];
-const maxLevels = 5;
 const USAGE = `
-    Usage: git run-on-nested-repos COMMAND
+    Usage: git run-on-nested-repos COMMAND [--max-depth=N]
+
+    Runs the command in every Git repository found below the current directory.
+    Nested repositories are not searched inside a repository.
+
+    Options:
+
+        --max-depth=N   how deep to look for repositories (default: 5)
 
     Examples:
 
         $ git run-on-nested-repos "git config --get remote.origin.url"
+        $ git run-on-nested-repos "git status -sb" --max-depth=2
 `;
 
-if (!command) {
-  console.log(USAGE);
-  process.exit(1);
-}
+const DEFAULT_MAX_DEPTH = 5;
 
-function getLevelForPath(pathname) {
-  return pathname.split("/").length;
-}
-
-async function enter(currentPath, { basePath, baseLevel }) {
-  const dirs = getDirectories(currentPath);
-
-  for (const fileName of dirs) {
-    const pathname = `${currentPath}/${fileName}`;
-    if (isDirectory(pathname)) {
-      const currentLevel = getLevelForPath(pathname);
-      const deep = currentLevel - baseLevel;
-      const directory = underline(bold(yellow(pathname)));
-
-      if (isGitRepository(pathname)) {
-        console.log(`${directory} ${blue(">")} ${command}`);
-        try {
-          const results = await runCommand(command, { cwd: pathname });
-          if (results) {
-            console.log(`${results}`);
-          }
-        } catch (err) {
-          if (err) {
-            console.error(err.message);
-          }
-        }
-      } else {
-        // console.log(`This is not a Git repository: ${fullFileName}`);
-        if (deep < maxLevels) {
-          await enter(pathname, { basePath, baseLevel });
-        }
+function parseArguments(argv) {
+  const options = { command: undefined, maxDepth: DEFAULT_MAX_DEPTH };
+  for (const argument of argv) {
+    if (argument === "--help" || argument === "-h") {
+      console.log(USAGE);
+      process.exit(0);
+    } else if (argument.startsWith("--max-depth=")) {
+      const value = Number(argument.slice("--max-depth=".length));
+      if (!Number.isInteger(value) || value < 1) {
+        throw new Error(`Invalid value for --max-depth: ${argument}`);
       }
+      options.maxDepth = value;
+    } else if (argument.startsWith("-")) {
+      throw new Error(`Unknown option: ${argument}\n${USAGE}`);
+    } else if (options.command === undefined) {
+      options.command = argument;
     } else {
-      // console.log(`This is not a directory: ${fileName}`);
+      throw new Error(`Unexpected argument: ${argument}\n${USAGE}`);
+    }
+  }
+  return options;
+}
+
+async function runInRepository(pathname, command) {
+  console.log(`${underline(bold(yellow(pathname)))} ${blue(">")} ${command}`);
+  try {
+    const output = await runCommand(command, { cwd: pathname });
+    if (output) {
+      console.log(output);
+    }
+  } catch (error) {
+    console.error(red(error.message));
+    process.exitCode = 1;
+  }
+}
+
+async function enter(currentPath, depth, { command, maxDepth }) {
+  for (const name of getDirectories(currentPath).sort()) {
+    const pathname = path.join(currentPath, name);
+
+    if (!isDirectory(pathname)) {
+      continue;
+    }
+
+    if (isGitWorkingTree(pathname)) {
+      await runInRepository(pathname, command);
+    } else if (depth < maxDepth) {
+      await enter(pathname, depth + 1, { command, maxDepth });
     }
   }
 }
 
 async function main() {
-  const basePath = await runCommand("pwd");
-  const baseLevel = getLevelForPath(basePath);
-  await enter(basePath, { basePath, baseLevel });
+  const options = parseArguments(process.argv.slice(2));
+
+  if (!options.command) {
+    console.log(USAGE);
+    return void process.exit(1);
+  }
+
+  await enter(process.cwd(), 1, options);
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  console.error(error.message);
+  process.exitCode = 1;
+});
