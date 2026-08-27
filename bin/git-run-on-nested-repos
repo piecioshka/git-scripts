@@ -8,7 +8,7 @@ const { runCommand } = require("../shared/__shared");
 const { underline, bold, blue, yellow, red } = require("../shared/__colors");
 
 const USAGE = `
-    Usage: git run-on-nested-repos COMMAND [--max-depth=N]
+    Usage: git run-on-nested-repos COMMAND [--max-depth=N] [--color=WHEN]
 
     Runs the command in every Git repository found below the current directory.
     Nested repositories are not searched inside a repository.
@@ -16,17 +16,26 @@ const USAGE = `
     Options:
 
         --max-depth=N   how deep to look for repositories (default: 5)
+        --color=WHEN    keep the colors of the command output: auto, always
+                        or never (default: auto - only when printing to a
+                        terminal, unless NO_COLOR is set)
 
     Examples:
 
         $ git run-on-nested-repos "git config --get remote.origin.url"
         $ git run-on-nested-repos "git status -sb" --max-depth=2
+        $ git run-on-nested-repos "git branch --all" --color=always | less -R
 `;
 
 const DEFAULT_MAX_DEPTH = 5;
+const COLOR_MODES = ["auto", "always", "never"];
 
 function parseArguments(argv) {
-  const options = { command: undefined, maxDepth: DEFAULT_MAX_DEPTH };
+  const options = {
+    command: undefined,
+    maxDepth: DEFAULT_MAX_DEPTH,
+    color: "auto",
+  };
   for (const argument of argv) {
     if (argument === "--help" || argument === "-h") {
       console.log(USAGE);
@@ -37,6 +46,12 @@ function parseArguments(argv) {
         throw new Error(`Invalid value for --max-depth: ${argument}`);
       }
       options.maxDepth = value;
+    } else if (argument.startsWith("--color=")) {
+      const value = argument.slice("--color=".length);
+      if (!COLOR_MODES.includes(value)) {
+        throw new Error(`Invalid value for --color: ${argument}`);
+      }
+      options.color = value;
     } else if (argument.startsWith("-")) {
       throw new Error(`Unknown option: ${argument}\n${USAGE}`);
     } else if (options.command === undefined) {
@@ -48,10 +63,30 @@ function parseArguments(argv) {
   return options;
 }
 
-async function runInRepository(pathname, command) {
+function shouldColorize(mode) {
+  if (mode === "auto") {
+    return Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
+  }
+  return mode === "always";
+}
+
+// The command runs with its stdout attached to a pipe, so Git (and most other
+// tools) turn the colors off. These variables ask them to keep the colors.
+function colorEnvironment() {
+  const inherited = process.env.GIT_CONFIG_PARAMETERS;
+  return {
+    GIT_CONFIG_PARAMETERS: [inherited, "'color.ui=always'"]
+      .filter(Boolean)
+      .join(" "),
+    FORCE_COLOR: "1",
+    CLICOLOR_FORCE: "1",
+  };
+}
+
+async function runInRepository(pathname, command, env) {
   console.log(`${underline(bold(yellow(pathname)))} ${blue(">")} ${command}`);
   try {
-    const output = await runCommand(command, { cwd: pathname });
+    const output = await runCommand(command, { cwd: pathname, env });
     if (output) {
       console.log(output);
     }
@@ -61,7 +96,7 @@ async function runInRepository(pathname, command) {
   }
 }
 
-async function enter(currentPath, depth, { command, maxDepth }) {
+async function enter(currentPath, depth, { command, maxDepth, env }) {
   for (const name of getDirectories(currentPath).sort()) {
     const pathname = path.join(currentPath, name);
 
@@ -70,9 +105,9 @@ async function enter(currentPath, depth, { command, maxDepth }) {
     }
 
     if (isGitWorkingTree(pathname)) {
-      await runInRepository(pathname, command);
+      await runInRepository(pathname, command, env);
     } else if (depth < maxDepth) {
-      await enter(pathname, depth + 1, { command, maxDepth });
+      await enter(pathname, depth + 1, { command, maxDepth, env });
     }
   }
 }
@@ -85,7 +120,8 @@ async function main() {
     return void process.exit(1);
   }
 
-  await enter(process.cwd(), 1, options);
+  const env = shouldColorize(options.color) ? colorEnvironment() : undefined;
+  await enter(process.cwd(), 1, { ...options, env });
 }
 
 main().catch((error) => {

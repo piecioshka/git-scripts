@@ -31,6 +31,15 @@ describe("runCommand", () => {
   it("runs in the given directory", async () => {
     assert.equal(await runCommand("pwd", { cwd: "/" }), "/");
   });
+
+  it("merges the given env into the current environment", async () => {
+    assert.equal(
+      await runCommand('echo "$GIT_SCRIPTS_TEST:$HOME"', {
+        env: { GIT_SCRIPTS_TEST: "value" },
+      }),
+      `value:${process.env.HOME}`,
+    );
+  });
 });
 
 describe("pad2Zeros / pad5", () => {
