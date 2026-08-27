@@ -1,20 +1,21 @@
 /app/ > git fire "Fire 🔥"
 ==> app > git status -s
+ M file.md
 
 ==> app > git add . -v
+add 'file.md'
 
-==> app > git commit -am 'Fire 🔥'
-[main 315db23] Fire 🔥
+==> app > git commit -m "Fire 🔥"
+[main bf58150] Fire 🔥
  1 file changed, 1 insertion(+)
 
 ==> app > git push --all -v
-Enumerating objects: 8, done.
-Counting objects: 100% (8/8), done.
-Delta compression using up to 16 threads
-Compressing objects: 100% (2/2), done.
-Writing objects: 100% (6/6), 1.84 KiB | 1.84 MiB/s, done.
-Total 6 (delta 0), reused 0 (delta 0), pack-reused 0
+Pushing to github.com:piecioshka/test.git
 To github.com:piecioshka/test.git
-   caae61d..315db23  HEAD -> main
+   7013091..bf58150  main -> main
+updating local tracking ref 'refs/remotes/origin/main'
 
-==> app > git push --all -v
+==> app > git push --tags -v
+Pushing to github.com:piecioshka/test.git
+Everything up-to-date
+
