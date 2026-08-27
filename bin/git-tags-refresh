@@ -2,6 +2,6 @@
 
 set -e
 
-# Git refresh tags (remove all local tags and fetch from origin).
-git tag -l | xargs git tag -d
-git fetch
+# Makes the local tags match the tags of origin: removes the local tags
+# that are missing on origin and moves the tags that point elsewhere.
+git fetch origin --tags --prune --prune-tags --force
