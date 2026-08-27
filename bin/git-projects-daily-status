@@ -1,14 +1,10 @@
 #!/usr/bin/env node
 
-const exec = require("node:child_process").exec;
+const path = require("node:path");
 const process = require("node:process");
-const { formatDate } = require("../shared/__shared");
-const {
-  isDirectory,
-  isHidden,
-  getFilesAndDirectories,
-} = require("../shared/__filesystem");
-const { isGitRepository, getGitBranchName } = require("../shared/__git");
+const { formatDate, runCommand } = require("../shared/__shared");
+const { getDirectories } = require("../shared/__filesystem");
+const { isGitWorkingTree, getGitBranchName } = require("../shared/__git");
 const {
   bold,
   underline,
@@ -20,66 +16,33 @@ const {
   cyan,
 } = require("../shared/__colors");
 
-// ---------------------------------------------------------------------------------------------------------------------
+// `git log --shortstat` prints a line like `3 files changed, 10 insertions(+), 2 deletions(-)`
+// per commit, and skips the parts that are zero.
+const STATS = {
+  changes: / (\d+) files? changed/g,
+  insertions: / (\d+) insertions?\(\+\)/g,
+  deletions: / (\d+) deletions?\(-\)/g,
+};
 
-async function countLines(name, pathname, callback) {
+function sumMatches(output, pattern) {
+  return [...output.matchAll(pattern)].reduce(
+    (sum, match) => sum + Number(match[1]),
+    0,
+  );
+}
+
+async function countLines(pathname) {
   const today = formatDate(new Date());
-  const command = `cd ${pathname} && git log --all --after="${today} 00:00:00" --before="${today} 23:59:59" --shortstat --oneline`;
+  const command = `git log --all --since="${today} 00:00:00" --before="${today} 23:59:59" --shortstat --oneline`;
+  const output = await runCommand(command, { cwd: pathname });
 
-  const regexp = {
-    changes: / (\d+) file/gim,
-    insertions: / (\d+) ins/gim,
-    deletions: / (\d+) del/gim,
-  };
-
-  const results = {
+  return {
     pathname,
     branchName: await getGitBranchName(pathname),
-    changes: 0,
-    insertions: 0,
-    deletions: 0,
+    changes: sumMatches(output, STATS.changes),
+    insertions: sumMatches(output, STATS.insertions),
+    deletions: sumMatches(output, STATS.deletions),
   };
-
-  function commandHandler(error, stdout, stderr) {
-    if (stdout) {
-      const matchChanges = stdout.match(regexp.changes);
-      const matchInsertions = stdout.match(regexp.insertions);
-      const matchDeletions = stdout.match(regexp.deletions);
-
-      // Count changes
-      if (Array.isArray(matchChanges)) {
-        matchChanges.forEach((item) => {
-          results.changes += parseInt(item, 10);
-        });
-      }
-
-      // Count insertions
-      if (Array.isArray(matchInsertions)) {
-        matchInsertions.forEach((item) => {
-          results.insertions += parseInt(item, 10);
-        });
-      }
-
-      // Count deletions
-      if (Array.isArray(matchDeletions)) {
-        matchDeletions.forEach((item) => {
-          results.deletions += parseInt(item, 10);
-        });
-      }
-
-      callback(results);
-    } else if (stderr) {
-      console.error(`[${name}] stderr`, stderr);
-      callback(stderr);
-    } else if (error) {
-      console.error(`[${name}] error`, error);
-      callback(error);
-    } else {
-      callback(null);
-    }
-  }
-
-  exec(command, commandHandler);
 }
 
 function displayProjectStatus(project) {
@@ -102,36 +65,31 @@ function displayProjectStatus(project) {
   });
 }
 
-// ---------------------------------------------------------------------------------------------------------------------
+async function collectProjects(files, workspacePath) {
+  const repositories = files
+    .map((name) => path.resolve(workspacePath, name))
+    .filter(isGitWorkingTree);
 
-function handleProjectStatus(name, path) {
-  return new Promise((resolve) => {
-    const pathname = `${path}/${name}`;
-    const isNotDirectory = !isDirectory(pathname);
-    const isNotRepository = !isGitRepository(pathname);
-    const isHideDirectory = isHidden(name);
+  const results = await Promise.allSettled(repositories.map(countLines));
 
-    if (isNotDirectory || isNotRepository || isHideDirectory) {
-      resolve(undefined);
-      return;
-    }
-
-    countLines(name, pathname, (changes) => {
-      resolve(changes);
+  results
+    .filter((result) => result.status === "rejected")
+    .forEach((result) => {
+      console.error(`${red("[error]")} ${result.reason.message}`);
     });
-  });
+
+  return results
+    .filter((result) => result.status === "fulfilled")
+    .map((result) => result.value)
+    .filter((project) => project.changes > 0);
 }
 
-async function setupPromiseLoop(files, path) {
-  const handlers = files.map((name) => {
-    return handleProjectStatus(name, path);
-  });
+async function main() {
+  const workspacePath = process.argv[2] || process.cwd();
+  const files = getDirectories(workspacePath).sort();
+  const projects = await collectProjects(files, workspacePath);
 
-  let projects = await Promise.all(handlers);
-
-  projects = projects.filter(Boolean);
-
-  if (projects.length == 0) {
+  if (projects.length === 0) {
     console.log(yellow("Nothing happened today"));
     return;
   }
@@ -139,10 +97,7 @@ async function setupPromiseLoop(files, path) {
   projects.forEach(displayProjectStatus);
 }
 
-async function main() {
-  const workspacePath = process.argv[2] || process.cwd();
-  const files = getFilesAndDirectories(workspacePath);
-  await setupPromiseLoop(files, workspacePath);
-}
-
-main().catch(console.error);
+main().catch((error) => {
+  console.error(error.message);
+  process.exitCode = 1;
+});
