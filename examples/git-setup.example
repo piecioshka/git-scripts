@@ -1,12 +1,14 @@
 /app/ > git setup
 ==> app > git init
-Initialized empty Git repository in /private/tmp/test/.git/
+Initialized empty Git repository in /private/tmp/app/.git/
 
 ==> app > git add . -v
+add 'example-file.md'
 
-==> app > git commit -am 'Initialize project'
-[main (root-commit) c2d8b89] Initialize project
+==> app > git commit -m "Initialize project"
+[main (root-commit) a8b215b] Initialize project
  1 file changed, 0 insertions(+), 0 deletions(-)
  create mode 100644 example-file.md
 
 ==> app > git branch -m main
+
