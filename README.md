@@ -21,8 +21,8 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
 
 - `git bars <committer_author> <year[_month]>`
   - Displays the revision count for the specified period [[example](examples/git-bars.example)].
-- `git changed-monorepo-packages [--oneline] [--main]`
-  - Displays changed packages [[example](examples/git-changed-monorepo-packages.example)].
+- `git changed-monorepo-packages [--oneline] [--base=main] [--folder=packages]`
+  - Displays the packages with files changed since the `base` branch [[example](examples/git-changed-monorepo-packages.example)].
 - `git changed-monorepo-packages-status [folder=packages] [base=main]`
   - Displays the names of the changed packages in one line, compared with the `base` branch.
 - `git clone-path <repository_url> <path/to/folder-or-file>`
