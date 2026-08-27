@@ -6,5 +6,15 @@
 set -e
 
 branch=$(git rev-parse --abbrev-ref HEAD)
-echo $branch
-echo $branch | tr -d '\n' | tr -d ' ' | pbcopy
+echo "$branch"
+
+if command -v pbcopy > /dev/null 2>&1; then
+  printf '%s' "$branch" | pbcopy
+elif command -v wl-copy > /dev/null 2>&1; then
+  printf '%s' "$branch" | wl-copy
+elif command -v xclip > /dev/null 2>&1; then
+  printf '%s' "$branch" | xclip -selection clipboard
+else
+  echo "No clipboard tool found (pbcopy, wl-copy or xclip)" >&2
+  exit 1
+fi
