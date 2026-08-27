@@ -1,24 +1,43 @@
-const { describe, it, expect } = require("./__test");
+const { describe, it } = require("node:test");
+const assert = require("node:assert/strict");
 const { getProcessOptions } = require("./__cli");
 
 describe("getProcessOptions", () => {
-  it("should return empty object when no arguments are provided", () => {
-    const options = getProcessOptions([]);
-    expect(options).toEqual({});
+  it("returns only the positional list when no arguments are provided", () => {
+    assert.deepEqual(getProcessOptions([]), { _: [] });
   });
 
-  it("should return options with custom cwd", () => {
+  it("reads a value from the next argument", () => {
     const options = getProcessOptions(["--cwd", "/custom/path"]);
-    expect(options.cwd).toBe("/custom/path");
+    assert.equal(options.cwd, "/custom/path");
+    assert.deepEqual(options._, []);
   });
 
-  it("should return options with custom env variable", () => {
-    const options = getProcessOptions(["--env", "NODE_ENV=production"]);
-    expect(options.env.NODE_ENV).toBe("production");
+  it("reads a value after the equals sign", () => {
+    assert.equal(getProcessOptions(["--base=develop"]).base, "develop");
   });
 
-  it("should return options with true when value is not define", () => {
-    const options = getProcessOptions(["--use-http"]);
-    expect(options["use-http"]).toBe(true);
+  it("parses --env into an object", () => {
+    const options = getProcessOptions([
+      "--env",
+      "NODE_ENV=production,PORT=3000",
+    ]);
+    assert.deepEqual(options.env, { NODE_ENV: "production", PORT: "3000" });
+  });
+
+  it("uses true when the value is not defined", () => {
+    assert.equal(getProcessOptions(["--use-http"])["use-http"], true);
+  });
+
+  it("does not take another option as a value", () => {
+    const options = getProcessOptions(["--oneline", "--base", "main"]);
+    assert.equal(options.oneline, true);
+    assert.equal(options.base, "main");
+  });
+
+  it("collects positional arguments", () => {
+    const options = getProcessOptions(["first", "--flag", "second"]);
+    assert.equal(options.flag, "second");
+    assert.deepEqual(options._, ["first"]);
   });
 });

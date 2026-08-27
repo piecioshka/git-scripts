@@ -2,5 +2,8 @@
 
 set -e
 
-node shared/__cli.test.js
-node --test shared/__git.test.js
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+npm run --silent lint
+npm run --silent test
+npm run --silent format:check
