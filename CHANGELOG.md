@@ -2,6 +2,20 @@
 
 All notable changes to this project, newest first.
 
+- 2026-08-27 — Added a CI workflow (`shellcheck`, unit tests and `prettier --check`), a `package.json` with the `lint`, `test` and `format:check` scripts, `.gitignore`, `.editorconfig` and `.nvmrc`; `./test.sh` runs all the checks. ([`f57a98b`], [`7e9c7dd`])
+- 2026-08-27 — Fixed `git zip`: detects uncommitted changes with `git status --porcelain` instead of counting lines, and quotes the file name. ([`c2f45de`])
+- 2026-08-27 — Fixed `git update-default-branch-master-to-main` and `git update-default-branch-master-to-main-in-workspace`: the remote branch is deleted with `git push origin --delete master` instead of a `git delete-branch` alias, which is not part of this repository; the single-repo variant refuses to run outside of `master`, and the workspace variant clones into a temporary directory and lists only the archived repositories still on `master`. ([`54f4c57`], [`efcc6cd`])
+- 2026-08-27 — Fixed `git tags-refresh`: uses `git fetch --tags --prune --prune-tags --force`; the previous `git tag -l | xargs git tag -d` failed on GNU `xargs` when there were no local tags, so the fetch never ran. ([`5845b10`])
+- 2026-08-27 — Fixed `git tags-recreate-versions-from-commits`: checked the existence of the tag without the `v` prefix, so every rerun reported "Failed to create" for every tag instead of skipping it; the command name in `README.md` was still the old `git tags-recreate-from-commits`. ([`36f2a84`])
+- 2026-08-27 — Fixed `git squash-all-commits`: the origin was restored with `git config --set`, an option that does not exist, so the script failed after removing `.git/` and left the repository without a remote; it uses `git remote add origin` now and warns before removing the history. ([`c184894`])
+- 2026-08-27 — Fixed `git run-on-nested-repos`: supports worktrees, uses `process.cwd()` and `path.join`, adds `--max-depth=N` (default: 5) and exits with code `1` when the command fails in any repository. ([`68e7a70`])
+- 2026-08-27 — Fixed `git projects-daily-status`: quotes the paths (a directory with a space crashed the script), supports worktrees, no longer prints `stderr` as a project, and shows only the projects with commits made today. ([`64d564f`])
+- 2026-08-27 — Fixed `git projects-births`: reads the root commit with `git log --max-parents=0` instead of parsing the human-readable log through `sed`, `grep`, `head`, `tail` and `cut`, supports worktrees and reports failures per repository. ([`eadeac5`])
+- 2026-08-27 — Fixed `git new-issue`: detects the default branch of `origin` instead of hardcoding `main`, pulls with `--ff-only` and creates the worktree branch explicitly. ([`7d4e285`])
+- 2026-08-27 — Fixed the Bash scripts (`git clone-path`, `git copy-branch-name`, `git fire`, `git publish-branch`, `git repo-origin-url`, `git setup`, `git user`, `git sync`): quoted all variables reported by `shellcheck`, `git fire` passes the message as an argument so quotes and shell characters cannot break the commit, `git copy-branch-name` supports `wl-copy` and `xclip` besides `pbcopy`, and `git publish-branch` no longer says "remove" instead of "remote". ([`cbd7b93`], [`86cfbf9`], [`b512339`], [`41298e5`], [`874c057`], [`06e2052`], [`b430cd0`], [`4533c4c`])
+- 2026-08-27 — Fixed `git changed-monorepo-packages` and `git changed-monorepo-packages-status`: the Bash variant quoted the `grep` pattern literally and never matched anything, and ignored the folder argument; the Node variant documented `--main` without implementing it. Both take the base branch now (`--base=main` and the second argument), the Node variant takes `--folder=packages` too and matches package names with dots. ([`2cb1201`], [`aba9878`])
+- 2026-08-27 — Fixed `git bars`: passes `HEAD` to `git shortlog` instead of reading `/dev/tty`, uses the real month lengths (including February of a leap year) instead of `-31`, sums the lines when `--author` matches several authors (the count was `NaN`), escapes the author and runs `git` sequentially instead of 31 processes at once. ([`97d5f71`])
+- 2026-08-27 — Fixed the shared helpers: `runCommand` returns only `stdout`, so Git warnings printed to `stderr` no longer leak into parsed numbers; the CLI parser no longer takes the next option as the value of a flag (`--oneline --base main`) and supports `--key=value`; `__print_command_and_eval` accepts an argument list, prints it quoted and runs it without `eval`; the `__COLOR_GRAY` code was black. The custom test runner, which never failed the build, was replaced with `node:test`. ([`7048e70`], [`98c185e`], [`3957426`])
 - 2026-08-27 — Fixed `git projects-update`: pulls with `--ff-only` so a batch update can never leave a repository in a merge or rebase, prints the repository line with `[update failed]` and the reason instead of a bare error, checks dirtiness and origin of Git worktrees, ignores untracked files, labels detached HEADs, branches without an upstream and bare repositories, skips hidden entries, sorts the output, runs up to `--jobs=N` updates in parallel, rejects unknown options and exits with code `1` on failures. ([`de5209d`])
 - 2026-08-12 — **Removed** `git is-private-repo`, and the `[🔐 private]` label in `git projects-update`; the workspace commands no longer query the GitHub, GitLab and Bitbucket APIs, which makes them faster and immune to rate limits. ([`60c139e`])
 - 2026-08-03 — Added `git stats-between-tags [pattern] [--level=minor|major]`: displays the number of commits and the added and removed lines between consecutive tags, treating `HEAD` as a tag; with `--level` only the tags of the given semver level are compared and the skipped ranges are merged. Ships with a recorded `vhs` demo. ([`b0e5946`], [`7af6451`], [`c667b1f`])
@@ -117,3 +131,29 @@ All notable changes to this project, newest first.
 [`5f76fae`]: https://github.com/piecioshka/git-scripts/commit/5f76fae4bc75ebda79b02f8b3698674afcd7a191
 [`536274e`]: https://github.com/piecioshka/git-scripts/commit/536274e69a4d960c7c9b48a2cc007398c46e7ca9
 [`1ac54e5`]: https://github.com/piecioshka/git-scripts/commit/1ac54e53cbf80f1060adcc62e3940248c3825178
+[`f57a98b`]: https://github.com/piecioshka/git-scripts/commit/f57a98b8c8f8a0ca47c79bc08bee846358964ba7
+[`7e9c7dd`]: https://github.com/piecioshka/git-scripts/commit/7e9c7dd6a237370bf579096f7b7ff9591d27381c
+[`c2f45de`]: https://github.com/piecioshka/git-scripts/commit/c2f45de5cd2cf6651467cf99b834e57884c81afb
+[`54f4c57`]: https://github.com/piecioshka/git-scripts/commit/54f4c57dbebb185240e85d4046c13884d08f607f
+[`efcc6cd`]: https://github.com/piecioshka/git-scripts/commit/efcc6cdc9643ec5a86e0f9865d6ca0444ca58e16
+[`5845b10`]: https://github.com/piecioshka/git-scripts/commit/5845b1083cc1e464cb89ff73d659d2dc47591063
+[`36f2a84`]: https://github.com/piecioshka/git-scripts/commit/36f2a845bf3b4194ff745216430d50860220e481
+[`c184894`]: https://github.com/piecioshka/git-scripts/commit/c18489483fa0d3428102e8fac724fdd4196c170f
+[`68e7a70`]: https://github.com/piecioshka/git-scripts/commit/68e7a706b7e192e4d3941bdab2a68a275cdb59ef
+[`64d564f`]: https://github.com/piecioshka/git-scripts/commit/64d564fd0a7c2cdaa0e4c8d619604b3fe81f1008
+[`eadeac5`]: https://github.com/piecioshka/git-scripts/commit/eadeac5ba18a5f3d491858cbbae39faf60c245ad
+[`7d4e285`]: https://github.com/piecioshka/git-scripts/commit/7d4e285d9be42afed8b4e86b8bd87837511cebc5
+[`cbd7b93`]: https://github.com/piecioshka/git-scripts/commit/cbd7b933ecf6fe211e46486a586e05ec7942cc4e
+[`86cfbf9`]: https://github.com/piecioshka/git-scripts/commit/86cfbf96d72154e0ed1e69ef44f512cd357f5843
+[`b512339`]: https://github.com/piecioshka/git-scripts/commit/b5123396ec28802d6307e122bfd98b65f31edccb
+[`41298e5`]: https://github.com/piecioshka/git-scripts/commit/41298e525f40982b2ada05c8ad451d6c3955e9af
+[`874c057`]: https://github.com/piecioshka/git-scripts/commit/874c0578e02262903823a238f9d19718252980ec
+[`06e2052`]: https://github.com/piecioshka/git-scripts/commit/06e2052e5e69d983e04281feab3feeb6b95dca22
+[`b430cd0`]: https://github.com/piecioshka/git-scripts/commit/b430cd0ad5dfb56a4e605528093e852122862150
+[`4533c4c`]: https://github.com/piecioshka/git-scripts/commit/4533c4c683091f1f7da32b8a3afca70b5a468a06
+[`2cb1201`]: https://github.com/piecioshka/git-scripts/commit/2cb1201c4988068701b6c659dd18a8bf385591ba
+[`aba9878`]: https://github.com/piecioshka/git-scripts/commit/aba9878f3c2b8b4eb45ba0309aa33f6fdd01b3a5
+[`97d5f71`]: https://github.com/piecioshka/git-scripts/commit/97d5f71718487184f9947a25ff3085a0841e415c
+[`7048e70`]: https://github.com/piecioshka/git-scripts/commit/7048e700463ddf0165738cb8d630d1788ae9a8d3
+[`98c185e`]: https://github.com/piecioshka/git-scripts/commit/98c185ef8871bf2b7de653dc936e1e94ec1f309c
+[`3957426`]: https://github.com/piecioshka/git-scripts/commit/3957426f0fce3a8a27a479deb4fcedc74fcc30b6
