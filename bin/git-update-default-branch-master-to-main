@@ -3,10 +3,16 @@
 set -e
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=shared/__shared.sh
 source "$script_dir/../shared/__shared.sh"
 
+if [ "$(git rev-parse --abbrev-ref HEAD)" != "master" ]; then
+  __print_error "ERROR: the current branch is not master"
+  exit 1
+fi
+
 git sync
-__print_command_and_eval "git branch -m main"
-__print_command_and_eval "git publish-branch"
-__print_command_and_eval "gh repo edit --default-branch main"
-__print_command_and_eval "git delete-branch master"
+__print_command_and_eval git branch -m main
+__print_command_and_eval git publish-branch
+__print_command_and_eval gh repo edit --default-branch main
+__print_command_and_eval git push origin --delete master
