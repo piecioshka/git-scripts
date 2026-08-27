@@ -32,7 +32,7 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
 - `git fire <message>`
   - Creates a commit with all changes and pushes it to the origin [[example](examples/git-fire.example)].
 - `git new-issue <issue_id>`
-  - Useful for starting a new task: creates a worktree, branch, and pull request.
+  - Useful for starting a new task: creates a worktree with a branch `<folder>-<issue_id>` from the default branch, an empty commit and a draft pull request (requires `gh`).
 - `git projects-births [path=./]`
   - Displays the start dates of projects in the workspace [[example](examples/git-projects-births.example)].
 - `git projects-daily-status [path=./]`

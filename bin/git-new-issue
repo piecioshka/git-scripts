@@ -3,32 +3,44 @@
 set -e
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=shared/__shared.sh
 source "$script_dir/../shared/__shared.sh"
 
+# The default branch of origin, with a fallback to `main` when
+# `refs/remotes/origin/HEAD` has not been set up by `git clone`.
+function default_branch {
+  local ref
+  ref=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null || true)
+  echo "${ref#origin/}"
+}
+
 function main {
-  issue_id="$1"
+  local issue_id="$1"
 
   if [ -z "$issue_id" ]; then
-    echo "Usage: $(basename $0) <issue_id>"
+    echo "Usage: $(basename "$0") <issue_id>"
     exit 1
   fi
 
+  local folder branch target base
   folder=$(basename "$(pwd)")
   branch="${folder}-${issue_id}"
-  __print_info "[i] Branch: ${branch}"
+  base=$(default_branch)
+  base="${base:-main}"
+  __print_info "[i] Branch: ${branch} (from ${base})"
 
   target="../${branch}"
 
   __print_debug "[>] Switch branch..."
-  git switch main
+  git switch "$base"
 
   __print_debug "[>] Pull recent changes..."
-  git pull --all
+  git pull --ff-only
 
   __print_debug "[>] Creating worktree..."
-  git worktree add "${target}"
+  git worktree add -b "$branch" "$target"
 
-  cd "${target}"
+  cd "$target"
 
   __print_debug "[>] Creating commit..."
   git commit --allow-empty -m "${issue_id}: Created a branch"
