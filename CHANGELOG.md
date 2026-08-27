@@ -2,6 +2,7 @@
 
 All notable changes to this project, newest first.
 
+- 2026-08-27 — Fixed `git run-on-nested-repos`: the output of the command lost its colors (Git saw a pipe instead of a terminal), so the colors are kept when printing to a terminal; `--color=always` keeps them in a pipe, `--color=never` and `NO_COLOR` turn them off. `runCommand` accepts an `env` option. ([`e57ed6a`])
 - 2026-08-27 — Added a CI workflow (`shellcheck`, unit tests and `prettier --check`), a `package.json` with the `lint`, `test` and `format:check` scripts, `.gitignore`, `.editorconfig` and `.nvmrc`; `./test.sh` runs all the checks. ([`f57a98b`], [`7e9c7dd`])
 - 2026-08-27 — Fixed `git zip`: detects uncommitted changes with `git status --porcelain` instead of counting lines, and quotes the file name. ([`c2f45de`])
 - 2026-08-27 — Fixed `git update-default-branch-master-to-main` and `git update-default-branch-master-to-main-in-workspace`: the remote branch is deleted with `git push origin --delete master` instead of a `git delete-branch` alias, which is not part of this repository; the single-repo variant refuses to run outside of `master`, and the workspace variant clones into a temporary directory and lists only the archived repositories still on `master`. ([`54f4c57`], [`efcc6cd`])
@@ -132,6 +133,7 @@ All notable changes to this project, newest first.
 [`536274e`]: https://github.com/piecioshka/git-scripts/commit/536274e69a4d960c7c9b48a2cc007398c46e7ca9
 [`1ac54e5`]: https://github.com/piecioshka/git-scripts/commit/1ac54e53cbf80f1060adcc62e3940248c3825178
 [`f57a98b`]: https://github.com/piecioshka/git-scripts/commit/f57a98b8c8f8a0ca47c79bc08bee846358964ba7
+[`e57ed6a`]: https://github.com/piecioshka/git-scripts/commit/e57ed6a9bb39d33d769dbb17e0b4c365ef9cd6eb
 [`7e9c7dd`]: https://github.com/piecioshka/git-scripts/commit/7e9c7dd6a237370bf579096f7b7ff9591d27381c
 [`c2f45de`]: https://github.com/piecioshka/git-scripts/commit/c2f45de5cd2cf6651467cf99b834e57884c81afb
 [`54f4c57`]: https://github.com/piecioshka/git-scripts/commit/54f4c57dbebb185240e85d4046c13884d08f607f
