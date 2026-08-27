@@ -3,17 +3,18 @@
 set -e
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=shared/__shared.sh
 source "$script_dir/../shared/__shared.sh"
 
 message="${1}"
 
 if [ -z "$message" ]; then
-  echo "Usage: $(basename $0) <message>"
+  echo "Usage: $(basename "$0") <message>"
   exit 1
 fi
 
-__print_command_and_eval "git status -s"
-__print_command_and_eval "git add . -v"
-__print_command_and_eval "git commit -am \"$message\""
-__print_command_and_eval "git push --all -v"
-__print_command_and_eval "git push --tags -v"
+__print_command_and_eval git status -s
+__print_command_and_eval git add . -v
+__print_command_and_eval git commit -m "$message"
+__print_command_and_eval git push --all -v
+__print_command_and_eval git push --tags -v
