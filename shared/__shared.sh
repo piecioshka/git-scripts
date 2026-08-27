@@ -54,8 +54,22 @@ function __print_command_and_eval {
     __print_command "${1}"
     eval "${1}"
   else
-    __print_command "$*"
+    __print_command "$(__format_command "$@")"
     "$@"
   fi
   echo ""
+}
+
+# Joins the arguments for display, quoting the ones with spaces or shell
+# characters, so the printed line looks like the command typed in a terminal.
+function __format_command {
+  local result=""
+  local arg
+  for arg in "$@"; do
+    if [[ "$arg" =~ [[:space:]\$\`\"\'\*\?\[\]\(\)\|\&\;\<\>] ]] || [ -z "$arg" ]; then
+      arg="\"${arg//\"/\\\"}\""
+    fi
+    result="${result:+$result }$arg"
+  done
+  printf '%s' "$result"
 }
