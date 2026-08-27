@@ -2,31 +2,23 @@
 
 const path = require("node:path");
 const process = require("node:process");
-const { getFilesAndDirectories } = require("../shared/__filesystem");
-const { isGitRepository } = require("../shared/__git");
+const { getDirectories } = require("../shared/__filesystem");
+const { isGitWorkingTree } = require("../shared/__git");
 const { formatDate, runCommand, sortBy } = require("../shared/__shared");
-const { yellow, brown, gray } = require("../shared/__colors");
+const { yellow, brown, gray, red } = require("../shared/__colors");
 
-const GIT_FIRST_COMMIT = "git log --reverse | sed -n -e '1,5p'";
-const GIT_FIRST_COMMIT_DATE = `${GIT_FIRST_COMMIT} | grep -v diff | head -n3 | tail -n1 | cut -f4-9 -d ' '`;
+// The root commit, without walking through the whole history and parsing
+// the human-readable log output.
+const GIT_ROOT_COMMIT = "git log --max-parents=0 --format=%aI%n%aN HEAD";
 
-async function getGitRepoStartDate(pathname) {
-  const date = await runCommand(GIT_FIRST_COMMIT_DATE, { cwd: pathname });
-  return new Date(date);
-}
-
-async function getGitAuthor(pathname) {
-  const command = "git log --format='%aN' | tail -n1";
-  const author = await runCommand(command, { cwd: pathname });
-  return author.trim();
-}
-
-async function describePathname(pathname = ".") {
-  const result = {};
-  result.isRepository = isGitRepository(pathname);
-  result.startDate = await getGitRepoStartDate(pathname);
-  result.author = await getGitAuthor(pathname);
-  return result;
+async function describeRepository(pathname) {
+  const output = await runCommand(GIT_ROOT_COMMIT, { cwd: pathname });
+  // A repository with several roots (e.g. merged subtrees) lists them all,
+  // the oldest one is the last one.
+  const lines = output.split("\n").filter(Boolean);
+  const date = lines[lines.length - 2];
+  const author = lines[lines.length - 1];
+  return { startDate: new Date(date), author };
 }
 
 function toRecord(project) {
@@ -36,14 +28,14 @@ function toRecord(project) {
 }
 
 function displayResults(projects) {
-  const keys = Object.keys(projects);
+  const years = Object.keys(projects).sort();
 
-  if (keys.length === 0) {
+  if (years.length === 0) {
     console.log(yellow("Not found any git repository in this directory"));
     return;
   }
 
-  keys.forEach((year) => {
+  years.forEach((year) => {
     console.log(year);
     const projectRecords = projects[year]
       .sort(sortBy((v) => v.startDate.getTime()))
@@ -52,52 +44,37 @@ function displayResults(projects) {
   });
 }
 
-function setupPromiseLoop(files, workspacePath) {
+async function collectProjects(files, workspacePath) {
   const projects = {};
 
-  return files.reduce((promise, file) => {
+  for (const file of files) {
     const pathname = path.resolve(workspacePath, file);
 
-    if (!isGitRepository(pathname)) {
-      return promise.then(() => {
-        return projects;
-      });
+    if (!isGitWorkingTree(pathname)) {
+      continue;
     }
 
-    return promise
-      .then(() => describePathname(pathname))
-      .then((descriptor) => {
-        const { isRepository, startDate, author } = descriptor;
+    try {
+      const { startDate, author } = await describeRepository(pathname);
+      const year = startDate.getFullYear();
+      projects[year] ??= [];
+      projects[year].push({ startDate, pathname, projectName: file, author });
+    } catch (error) {
+      console.error(`${red("[error]")} ${file}: ${error.message}`);
+    }
+  }
 
-        if (!isRepository) {
-          return Promise.resolve();
-        }
-
-        const year = startDate.getFullYear();
-
-        if (!projects[year]) {
-          projects[year] = [];
-        }
-
-        projects[year].push({
-          startDate,
-          pathname,
-          projectName: file,
-          author,
-        });
-        return projects;
-      })
-      .catch((err) => {
-        console.error(err.message);
-      });
-  }, Promise.resolve());
+  return projects;
 }
 
 async function main() {
   const workspacePath = process.argv[2] || process.cwd();
-  const files = getFilesAndDirectories(workspacePath);
-  const projects = await setupPromiseLoop(files, workspacePath);
+  const files = getDirectories(workspacePath).sort();
+  const projects = await collectProjects(files, workspacePath);
   displayResults(projects);
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  console.error(error.message);
+  process.exitCode = 1;
+});

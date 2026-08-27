@@ -34,9 +34,9 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
 - `git new-issue <issue_id>`
   - Useful for starting a new task: creates a worktree with a branch `<folder>-<issue_id>` from the default branch, an empty commit and a draft pull request (requires `gh`).
 - `git projects-births [path=./]`
-  - Displays the start dates of projects in the workspace [[example](examples/git-projects-births.example)].
+  - Displays the date and the author of the first commit of every project in the workspace, grouped by year [[example](examples/git-projects-births.example)].
 - `git projects-daily-status [path=./]`
-  - Displays the status of all projects in the workspace [[example](examples/git-projects-daily-status.example)].
+  - Displays the projects in the workspace with commits made today, and the number of changed files and lines [[example](examples/git-projects-daily-status.example)].
 - `[DEBUG=true] git projects-update [path=./] [--verbose] [--jobs=N]`
   - Updates all projects in the workspace with `git pull --ff-only`, `N` repositories at a time (default: 4) [[example](examples/git-projects-update.example)].
   - Skips repositories that are dirty (modified tracked files), local-only, detached or without an upstream, and never leaves a repository in a merge or rebase; exits with code `1` when any update fails.
