@@ -114,6 +114,28 @@ async function getGitUnpushedState(pathname) {
   return result;
 }
 
+// The local tags that origin does not have yet. `--dry-run` asks git what a
+// real `push --tags` would do, so the answer covers exactly the tags that
+// would travel, without creating anything on the remote.
+async function countGitUnpushedTags(pathname) {
+  if (!isGitWorkingTree(pathname)) return 0;
+  const command = "LC_ALL=C git push --tags --dry-run --porcelain origin";
+  let output;
+  try {
+    output = await runCommand(command, { cwd: pathname });
+  } catch (error) {
+    // No origin, no network, a rejected ref: the push itself reports those,
+    // so here an unknown state counts as nothing to push.
+    return 0;
+  }
+  // The porcelain format lists one line per ref, prefixed with the status:
+  // "*" for a new ref, "=" for one that is already up to date.
+  return output
+    .split("\n")
+    .filter((line) => line.startsWith("*") && line.includes("refs/tags/"))
+    .length;
+}
+
 async function getGitAheadCount(pathname, branch) {
   // The branch name comes from git itself, but it still travels through a
   // shell, so quote it: refs may contain characters the shell would expand.
@@ -138,4 +160,5 @@ module.exports = {
   isDirtyGitRepository,
   countGitDirtyFiles,
   getGitUnpushedState,
+  countGitUnpushedTags,
 };

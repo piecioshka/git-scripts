@@ -43,6 +43,11 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Displays the date and the author of the first commit of every project in the workspace, grouped by year [[example](examples/git-projects-births.example)].
 - `git projects-daily-status [path=./]`
   - Displays the projects in the workspace with commits made today, and the number of changed files and lines [[example](examples/git-projects-daily-status.example)].
+- `[DEBUG=true] git projects-push [path=./] [--verbose] [--jobs=N]`
+  - Pushes every branch and tag of all projects in the workspace to the origin, `N` repositories at a time (default: 4) [[example](examples/git-projects-push.example)].
+  - Pushes only the repositories that have work the origin is missing: commits ahead of the upstream, branches without an upstream (pushed with `-u`, so they are not reported again) and local tags. Branches and tags are pushed independently, so a branch the origin has moved past does not hold back the tags.
+  - Skips files, bare repositories, directories that are not repositories and local-only repositories. A dirty or detached repository is pushed as usual, because `push` only reads the refs and never touches the working tree.
+  - Exits with code `1` when any push fails; the output of the failed push is printed below the repository, and `--verbose` prints it for the successful ones too.
 - `[DEBUG=true] git projects-update [path=./] [--verbose] [--jobs=N]`
   - Updates all projects in the workspace with `git pull --ff-only`, `N` repositories at a time (default: 4) [[example](examples/git-projects-update.example)].
   - Skips repositories that are dirty (modified tracked files), local-only, detached or without an upstream, and never leaves a repository in a merge or rebase; exits with code `1` when any update fails.

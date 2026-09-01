@@ -1,0 +1,39 @@
+> git projects-push
+[ahead 2] [pushed] boilerplate-jasmine-typescript [main]
+    ahead: main
+[nothing to push] battery-life-extender [main]
+[dirty 3] [ahead 1] [pushed] dicts [main]
+    ahead: main
+[never pushed 1] [pushed] fakes-auth [feature]
+    never pushed: feature
+[tags 2] [pushed] is-responding [main]
+[ahead 1] [push failed] eslint-config-piecioshka [main]
+    ahead: main
+To github.com:piecioshka/eslint-config-piecioshka.git
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'github.com:piecioshka/eslint-config-piecioshka.git'
+[local repo] git-scripts [main]
+[worktree] [nothing to push] github-track-followers-setup [wt1]
+[not repo] innerhtml-vs-innertext-vs-textcontent
+[bare repo] offline-strategy.git
+[file] README.md
+4 pushed, 1 failed
+
+> git projects-push --verbose
+[tags 1] [pushed] is-responding [main]
+To github.com:piecioshka/is-responding.git
+ * [new tag]         v2.1.0 -> v2.1.0
+[nothing to push] battery-life-extender [main]
+1 pushed
+
+> DEBUG=true git projects-push --jobs=1
+==> git config --get remote.origin.url
+==> git status --porcelain --untracked-files=no 2>/dev/null | wc -l
+==> git branch --show-current
+==> git for-each-ref --format='%(refname:short)%09%(upstream:short)' refs/heads
+==> git rev-list --count 'main'@{u}..'main'
+==> LC_ALL=C git push --tags --dry-run --porcelain origin
+==> git -c color.ui=always push --all -v 2>&1
+==> git -c color.ui=always push --tags -v 2>&1
+[ahead 2] [pushed] ava-live [main]
+    ahead: main

@@ -1,0 +1,357 @@
+#!/usr/bin/env node
+
+const path = require("node:path");
+const process = require("node:process");
+const { runCommand } = require("../shared/__shared");
+const {
+  isFile,
+  isHidden,
+  getFilesAndDirectories,
+} = require("../shared/__filesystem");
+const {
+  getGitBranchName,
+  isGitBareRepository,
+  isGitRepository,
+  isLocalOnlyGitRepository,
+  countGitDirtyFiles,
+  countGitUnpushedTags,
+  getGitUnpushedState,
+  isGitWorktree,
+} = require("../shared/__git");
+const {
+  dimGray,
+  italic,
+  red,
+  green,
+  blue,
+  magenta,
+  brown,
+  gray,
+  darkGreen,
+  yellow,
+  brightYellow,
+} = require("../shared/__colors");
+
+const USAGE = `
+    Usage: [DEBUG=true] git projects-push [path=./] [--verbose] [--jobs=N]
+
+    Pushes every branch and tag of the projects in the workspace to origin.
+
+    Options:
+
+        --verbose   print the output of every successful push
+        --jobs=N    number of repositories pushed in parallel (default: 4)
+`;
+
+const DEFAULT_JOBS = 4;
+
+const PUSH_STATUS = {
+  NOTHING_TO_PUSH: "nothing to push",
+  PUSHED: "pushed",
+  FAILED: "failed",
+};
+
+let verboseEnabled = false;
+
+// `git push` writes its whole report to stderr, so every command below
+// redirects it into stdout: without that, a successful push would have no
+// output to show under --verbose.
+async function push(pathname, command) {
+  try {
+    return {
+      failed: false,
+      output: await runCommand(command, { cwd: pathname }),
+    };
+  } catch (error) {
+    const output = String(error.message)
+      .replace(/^Command failed: .*\n?/, "")
+      .trim();
+    return { failed: true, output };
+  }
+}
+
+// A ref name comes from git itself, but it still travels through a shell,
+// so quote it: refs may contain characters the shell would expand.
+const quote = (value) => `'${value.replace(/'/g, "'\\''")}'`;
+
+async function pushGitRepository(
+  pathname,
+  { hasBranches, hasTags, newBranches },
+) {
+  // --all pushes every local branch, --tags every local tag, which together
+  // are the whole of the work that origin is missing. The two are pushed
+  // independently: a branch that origin has moved past rejects the whole
+  // `push --all`, and that must not hold back the tags of the repository.
+  const steps = [];
+  if (hasBranches) {
+    steps.push("git -c color.ui=always push --all -v 2>&1");
+  }
+  // `push --all` sends the branches that have no upstream, but it does not
+  // set one, so without this they would be reported and pushed again on
+  // every run. `-u` is what records the tracking reference.
+  for (const branch of newBranches) {
+    steps.push(
+      `git -c color.ui=always push -u origin ${quote(branch)} -v 2>&1`,
+    );
+  }
+  if (hasTags) {
+    steps.push("git -c color.ui=always push --tags -v 2>&1");
+  }
+  const outputs = [];
+  let failed = false;
+  for (const command of steps) {
+    const result = await push(pathname, command);
+    failed = failed || result.failed;
+    if (result.output) {
+      outputs.push(result.output);
+    }
+  }
+  return {
+    status: failed ? PUSH_STATUS.FAILED : PUSH_STATUS.PUSHED,
+    output: outputs.join("\n").trim(),
+  };
+}
+
+async function describePathname(pathname) {
+  const start = Date.now();
+  const result = {};
+  result.isFile = isFile(pathname);
+  result.isBareRepository = isGitBareRepository(pathname);
+  result.isRepository = isGitRepository(pathname);
+  result.isWorktree = isGitWorktree(pathname);
+  result.isWorkingTree = result.isRepository || result.isWorktree;
+  result.isLocalOnlyRepository = await isLocalOnlyGitRepository(pathname);
+  result.dirtyFiles = await countGitDirtyFiles(pathname);
+  result.isDirtyRepository = result.dirtyFiles > 0;
+  result.branchName = await getGitBranchName(pathname);
+  // A repository can be pushed while it is dirty or detached: `push` reads the
+  // refs and never touches the working tree, so neither state is in the way.
+  if (result.isWorkingTree && !result.isLocalOnlyRepository) {
+    result.unpushed = await getGitUnpushedState(pathname);
+    result.unpushedTags = await countGitUnpushedTags(pathname);
+    const hasBranches =
+      result.unpushed.aheadCommits > 0 ||
+      result.unpushed.unpushedBranches.length > 0;
+    const hasTags = result.unpushedTags > 0;
+    if (hasBranches || hasTags) {
+      const { status, output } = await pushGitRepository(pathname, {
+        hasBranches,
+        hasTags,
+        newBranches: result.unpushed.unpushedBranches,
+      });
+      result.pushStatus = status;
+      result.pushOutput = output;
+    } else {
+      result.pushStatus = PUSH_STATUS.NOTHING_TO_PUSH;
+    }
+  }
+  const end = Date.now();
+  result.elapsedTime = end - start;
+  return result;
+}
+
+function renderLabels(descriptor) {
+  const {
+    isFile,
+    isBareRepository,
+    isWorkingTree,
+    isWorktree,
+    isDirtyRepository,
+    dirtyFiles,
+    isLocalOnlyRepository,
+    pushStatus,
+    unpushed,
+    unpushedTags,
+  } = descriptor;
+  const labels = [];
+
+  if (isFile) {
+    labels.push(blue("[file]"));
+    return labels;
+  }
+  if (isBareRepository) {
+    labels.push(dimGray("[bare repo]"));
+    return labels;
+  }
+  if (!isWorkingTree) {
+    labels.push(brown("[not repo]"));
+    return labels;
+  }
+
+  if (isWorktree) {
+    labels.push(dimGray(italic("[worktree]")));
+  }
+  if (isDirtyRepository) {
+    labels.push(red(`[dirty ${dirtyFiles}]`));
+  }
+  if (isLocalOnlyRepository) {
+    labels.push("[local repo]");
+  }
+
+  if (unpushed) {
+    const { aheadCommits, aheadBranches, unpushedBranches } = unpushed;
+    if (aheadCommits > 0) {
+      const branches =
+        aheadBranches.length > 1 ? ` in ${aheadBranches.length} branches` : "";
+      labels.push(brightYellow(`[ahead ${aheadCommits}${branches}]`));
+    }
+    if (unpushedBranches.length > 0) {
+      labels.push(yellow(`[never pushed ${unpushedBranches.length}]`));
+    }
+  }
+  if (unpushedTags > 0) {
+    labels.push(yellow(`[tags ${unpushedTags}]`));
+  }
+
+  switch (pushStatus) {
+    case PUSH_STATUS.NOTHING_TO_PUSH:
+      labels.push(darkGreen(`[${PUSH_STATUS.NOTHING_TO_PUSH}]`));
+      break;
+    case PUSH_STATUS.PUSHED:
+      labels.push(green(`[${PUSH_STATUS.PUSHED}]`));
+      break;
+    case PUSH_STATUS.FAILED:
+      labels.push(red("[push failed]"));
+      break;
+    default:
+      break;
+  }
+
+  return labels;
+}
+
+function printDescriptor(pathname, descriptor) {
+  const {
+    elapsedTime,
+    isWorkingTree,
+    branchName,
+    pushStatus,
+    pushOutput,
+    unpushed,
+  } = descriptor;
+  const output = renderLabels(descriptor);
+
+  output.push(path.basename(pathname));
+
+  if (isWorkingTree && branchName) {
+    output.push(magenta(`[${branchName}]`));
+  }
+
+  output.push(gray(italic(`+${elapsedTime}ms`)));
+
+  console.log(output.join(" "));
+
+  if (unpushed) {
+    for (const branch of unpushed.aheadBranches) {
+      console.log(gray(`    ahead: ${branch}`));
+    }
+    for (const branch of unpushed.unpushedBranches) {
+      console.log(gray(`    never pushed: ${branch}`));
+    }
+  }
+
+  const isFailed = pushStatus === PUSH_STATUS.FAILED;
+  const isPushed = pushStatus === PUSH_STATUS.PUSHED;
+  if (pushOutput && (isFailed || (verboseEnabled && isPushed))) {
+    console.log(pushOutput);
+  }
+}
+
+async function processWorkspace(files, workspacePath, jobs) {
+  const tasks = files.map((file) => {
+    const pathname = path.resolve(workspacePath, file);
+    return { pathname, task: () => describePathname(pathname) };
+  });
+  const results = tasks.map(() => null);
+  let next = 0;
+
+  async function worker() {
+    while (next < tasks.length) {
+      const index = next++;
+      results[index] = tasks[index]
+        .task()
+        .then((descriptor) => ({ descriptor }))
+        .catch((error) => ({ error }));
+      await results[index];
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(jobs, tasks.length) }, () =>
+    worker(),
+  );
+
+  const summary = { pushed: 0, failures: 0 };
+  for (let index = 0; index < tasks.length; index++) {
+    while (results[index] === null) {
+      await Promise.race(workers.concat(results.filter(Boolean)));
+    }
+    const { pathname } = tasks[index];
+    const { descriptor, error } = await results[index];
+    if (error) {
+      summary.failures += 1;
+      console.error(
+        `${red("[error]")} ${path.basename(pathname)}: ${error.message}`,
+      );
+      continue;
+    }
+    printDescriptor(pathname, descriptor);
+    if (descriptor.pushStatus === PUSH_STATUS.PUSHED) {
+      summary.pushed += 1;
+    }
+    if (descriptor.pushStatus === PUSH_STATUS.FAILED) {
+      summary.failures += 1;
+    }
+  }
+  await Promise.all(workers);
+  return summary;
+}
+
+function printSummary({ pushed, failures }) {
+  const parts = [green(`${pushed} pushed`)];
+  if (failures > 0) {
+    parts.push(red(`${failures} failed`));
+  }
+  console.log(parts.join(", "));
+}
+
+function parseArgs(argv) {
+  const options = { verbose: false, jobs: DEFAULT_JOBS, workspacePath: null };
+  for (const arg of argv) {
+    if (arg === "--help" || arg === "-h") {
+      console.log(USAGE);
+      process.exit(0);
+    } else if (arg === "--verbose") {
+      options.verbose = true;
+    } else if (arg.startsWith("--jobs=")) {
+      const jobs = Number(arg.slice("--jobs=".length));
+      if (!Number.isInteger(jobs) || jobs < 1) {
+        throw new Error(`Invalid value for --jobs: ${arg}`);
+      }
+      options.jobs = jobs;
+    } else if (arg.startsWith("-")) {
+      throw new Error(`Unknown option: ${arg}\n${USAGE}`);
+    } else if (options.workspacePath === null) {
+      options.workspacePath = arg;
+    } else {
+      throw new Error(`Unexpected argument: ${arg}\n${USAGE}`);
+    }
+  }
+  return options;
+}
+
+async function main() {
+  const options = parseArgs(process.argv.slice(2));
+  verboseEnabled = options.verbose;
+  const workspacePath = options.workspacePath || process.cwd();
+  const files = getFilesAndDirectories(workspacePath)
+    .filter((file) => !isHidden(file))
+    .sort();
+  const summary = await processWorkspace(files, workspacePath, options.jobs);
+  printSummary(summary);
+  process.exitCode = summary.failures > 0 ? 1 : 0;
+}
+
+main().catch((err) => {
+  console.error(err.message);
+  process.exitCode = 1;
+});

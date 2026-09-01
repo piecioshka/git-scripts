@@ -16,6 +16,7 @@ const {
   isDirtyGitRepository,
   countGitDirtyFiles,
   getGitUnpushedState,
+  countGitUnpushedTags,
 } = require("./__git");
 
 const env = {
@@ -76,6 +77,10 @@ before(() => {
     "git branch --set-upstream-to=origin/main second",
     dir("many-branches-repo"),
   );
+  sh("git clone -q remote.git unpushed-tag-repo", root);
+  sh("git tag v1.0.0", dir("unpushed-tag-repo"));
+  sh("git clone -q remote.git pushed-tag-repo", root);
+  sh("git tag v2.0.0 && git push -q --tags", dir("pushed-tag-repo"));
   sh("git init -q local-repo", root);
   sh("git commit -q --allow-empty -m init", dir("local-repo"));
   sh("git worktree add -q ../worktree -b wt", dir("clean-repo"));
@@ -222,5 +227,27 @@ describe("getGitUnpushedState", () => {
     assert.equal(state.aheadCommits, 0);
     assert.deepEqual(state.aheadBranches, []);
     assert.deepEqual(state.unpushedBranches, []);
+  });
+});
+
+describe("countGitUnpushedTags", () => {
+  it("counts the tags that origin does not have", async () => {
+    assert.equal(await countGitUnpushedTags(dir("unpushed-tag-repo")), 1);
+  });
+
+  it("is zero once the tags are pushed", async () => {
+    assert.equal(await countGitUnpushedTags(dir("pushed-tag-repo")), 0);
+  });
+
+  it("is zero for a repository without tags", async () => {
+    assert.equal(await countGitUnpushedTags(dir("clean-repo")), 0);
+  });
+
+  it("is zero for a repository without a remote", async () => {
+    assert.equal(await countGitUnpushedTags(dir("local-repo")), 0);
+  });
+
+  it("is zero outside of a repository", async () => {
+    assert.equal(await countGitUnpushedTags(dir("plain-dir")), 0);
   });
 });
