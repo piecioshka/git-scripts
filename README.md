@@ -1,5 +1,11 @@
 # git-scripts
 
+<!-- prettier-ignore-start -->
+
+[![github-ci](https://github.com/piecioshka/git-scripts/actions/workflows/ci.yml/badge.svg)](https://github.com/piecioshka/git-scripts/actions/workflows/ci.yml)
+
+<!-- prettier-ignore-end -->
+
 🔨 Git utility scripts
 
 ## Installation
