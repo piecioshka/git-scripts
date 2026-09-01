@@ -18,6 +18,13 @@ const {
 
 const env = {
   ...process.env,
+  // Isolate from the machine's git config: the setup below assumes the
+  // default branch is "main", which is not true on a vanilla git install.
+  GIT_CONFIG_GLOBAL: "/dev/null",
+  GIT_CONFIG_SYSTEM: "/dev/null",
+  GIT_CONFIG_COUNT: "1",
+  GIT_CONFIG_KEY_0: "init.defaultBranch",
+  GIT_CONFIG_VALUE_0: "main",
   GIT_AUTHOR_NAME: "test",
   GIT_AUTHOR_EMAIL: "test@example.com",
   GIT_COMMITTER_NAME: "test",
