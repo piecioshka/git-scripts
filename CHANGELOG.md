@@ -2,6 +2,7 @@
 
 All notable changes to this project, newest first.
 
+- 2026-09-01 — Added the unpushed work report to `git projects-update`: `[ahead N]` counts the commits every local branch has over its upstream, `[never pushed N]` the branches without one, `[dirty repo]` became `[dirty N]`, and the branch names are printed below the repository. Repositories skipped by the update (dirty, detached, without an upstream) are inspected too. `getGitUnpushedState` and `countGitDirtyFiles` were added to the shared Git helpers.
 - 2026-08-27 — Fixed `git run-on-nested-repos`: the output of the command lost its colors (Git saw a pipe instead of a terminal), so the colors are kept when printing to a terminal; `--color=always` keeps them in a pipe, `--color=never` and `NO_COLOR` turn them off. `runCommand` accepts an `env` option. ([`e57ed6a`])
 - 2026-08-27 — Added a CI workflow (`shellcheck`, unit tests and `prettier --check`), a `package.json` with the `lint`, `test` and `format:check` scripts, `.gitignore`, `.editorconfig` and `.nvmrc`; `./test.sh` runs all the checks. ([`f57a98b`], [`7e9c7dd`])
 - 2026-08-27 — Fixed `git zip`: detects uncommitted changes with `git status --porcelain` instead of counting lines, and quotes the file name. ([`c2f45de`])

@@ -46,6 +46,7 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
 - `[DEBUG=true] git projects-update [path=./] [--verbose] [--jobs=N]`
   - Updates all projects in the workspace with `git pull --ff-only`, `N` repositories at a time (default: 4) [[example](examples/git-projects-update.example)].
   - Skips repositories that are dirty (modified tracked files), local-only, detached or without an upstream, and never leaves a repository in a merge or rebase; exits with code `1` when any update fails.
+  - Reports the work that is missing from the origin: `[dirty N]` counts the modified tracked files, `[ahead N]` the commits of every local branch that its upstream does not have, and `[never pushed N]` the branches without an upstream; the branch names are listed below the repository. Repositories skipped by the update are reported too, but their numbers come from the refs of the last fetch, not from a fresh one.
 - `git publish-branch`
   - Publishes the current branch to the origin and sets the upstream.
 - `git repo-origin-url`

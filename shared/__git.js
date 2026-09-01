@@ -61,8 +61,8 @@ async function isLocalOnlyGitRepository(pathname) {
   return output === null || output.length === 0;
 }
 
-async function isDirtyGitRepository(pathname) {
-  if (!isGitWorkingTree(pathname)) return false;
+async function countGitDirtyFiles(pathname) {
+  if (!isGitWorkingTree(pathname)) return 0;
 
   try {
     // Untracked files never block a fast-forward pull, so only tracked changes
@@ -70,9 +70,59 @@ async function isDirtyGitRepository(pathname) {
     const command =
       "git status --porcelain --untracked-files=no 2>/dev/null | wc -l";
     const output = await runCommand(command, { cwd: pathname });
-    return Boolean(Number(output));
+    return Number(output) || 0;
   } catch (error) {
-    return false;
+    return 0;
+  }
+}
+
+async function isDirtyGitRepository(pathname) {
+  return (await countGitDirtyFiles(pathname)) > 0;
+}
+
+// Every local branch that carries work missing from the remote: either commits
+// ahead of its upstream, or no upstream at all (never pushed). Both are read
+// from the refs already present locally, so this makes no network request --
+// the numbers describe the last known state of the remote.
+async function getGitUnpushedState(pathname) {
+  const empty = { aheadCommits: 0, aheadBranches: [], unpushedBranches: [] };
+  if (!isGitWorkingTree(pathname)) return empty;
+
+  const format = "%(refname:short)%09%(upstream:short)";
+  const command = `git for-each-ref --format='${format}' refs/heads`;
+  let output;
+  try {
+    output = await runCommand(command, { cwd: pathname });
+  } catch (error) {
+    return empty;
+  }
+
+  const result = { aheadCommits: 0, aheadBranches: [], unpushedBranches: [] };
+  for (const line of output.split("\n")) {
+    if (!line.trim()) continue;
+    const [branch, upstream] = line.split("\t");
+    if (!upstream) {
+      result.unpushedBranches.push(branch);
+      continue;
+    }
+    const ahead = await getGitAheadCount(pathname, branch);
+    if (ahead > 0) {
+      result.aheadCommits += ahead;
+      result.aheadBranches.push(branch);
+    }
+  }
+  return result;
+}
+
+async function getGitAheadCount(pathname, branch) {
+  // The branch name comes from git itself, but it still travels through a
+  // shell, so quote it: refs may contain characters the shell would expand.
+  const ref = `'${branch.replace(/'/g, "'\\''")}'`;
+  const command = `git rev-list --count ${ref}@{u}..${ref}`;
+  try {
+    return Number(await runCommand(command, { cwd: pathname })) || 0;
+  } catch (error) {
+    return 0;
   }
 }
 
@@ -86,4 +136,6 @@ module.exports = {
   isGitWorkingTree,
   isLocalOnlyGitRepository,
   isDirtyGitRepository,
+  countGitDirtyFiles,
+  getGitUnpushedState,
 };

@@ -1,20 +1,25 @@
 > git projects-update
 [updated] ava-live [main]
 [up-to-date] battery-life-extender [main]
-[updated] boilerplate-jasmine-typescript [main]
-[dirty repo] dicts [main]
+[up-to-date] [ahead 2] boilerplate-jasmine-typescript [main]
+    ahead: main
+[dirty 3] [ahead 1] dicts [main]
+    ahead: main
 [update failed] eslint-config-piecioshka [main]
 From github.com:piecioshka/eslint-config-piecioshka
    2616d10..bd01feb  main       -> origin/main
 fatal: Not possible to fast-forward, aborting.
 [detached] fakes
-[no upstream] fakes-auth [feature]
+[no upstream] [never pushed 1] fakes-auth [feature]
+    never pushed: feature
 [local repo] git-scripts [main]
 [worktree] [updated] github-track-followers-setup [wt1]
 [not repo] innerhtml-vs-innertext-vs-textcontent
 [bare repo] offline-strategy.git
 [file] README.md
-[up-to-date] test-solidarity [main]
+[up-to-date] [ahead 4 in 2 branches] test-solidarity [main]
+    ahead: main
+    ahead: rewrite
 
 > git projects-update --verbose
 [updated] ava-live [main]
@@ -30,10 +35,15 @@ Fast-forward
 ==> git branch --show-current
 ==> git rev-parse --abbrev-ref --symbolic-full-name @{u}
 ==> LC_ALL=C git -c color.ui=always pull --ff-only
-[up-to-date] ava-live [main]
+==> git for-each-ref --format='%(refname:short)%09%(upstream:short)' refs/heads
+==> git rev-list --count 'main'@{u}..'main'
+[up-to-date] [ahead 2] ava-live [main]
+    ahead: main
 ==> git config --get remote.origin.url
 ==> git status --porcelain --untracked-files=no 2>/dev/null | wc -l
 ==> git branch --show-current
 ==> git rev-parse --abbrev-ref --symbolic-full-name @{u}
 ==> LC_ALL=C git -c color.ui=always pull --ff-only
+==> git for-each-ref --format='%(refname:short)%09%(upstream:short)' refs/heads
+==> git rev-list --count 'main'@{u}..'main'
 [updated] battery-life-extender [main]

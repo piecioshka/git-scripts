@@ -14,7 +14,8 @@ const {
   isGitBareRepository,
   isGitRepository,
   isLocalOnlyGitRepository,
-  isDirtyGitRepository,
+  countGitDirtyFiles,
+  getGitUnpushedState,
   isGitWorktree,
 } = require("../shared/__git");
 const {
@@ -27,6 +28,8 @@ const {
   brown,
   gray,
   darkGreen,
+  yellow,
+  brightYellow,
 } = require("../shared/__colors");
 
 const USAGE = `
@@ -76,7 +79,8 @@ async function describePathname(pathname) {
   result.isWorktree = isGitWorktree(pathname);
   result.isWorkingTree = result.isRepository || result.isWorktree;
   result.isLocalOnlyRepository = await isLocalOnlyGitRepository(pathname);
-  result.isDirtyRepository = await isDirtyGitRepository(pathname);
+  result.dirtyFiles = await countGitDirtyFiles(pathname);
+  result.isDirtyRepository = result.dirtyFiles > 0;
   result.branchName = await getGitBranchName(pathname);
   result.isDetached = result.isWorkingTree && result.branchName === "";
   result.hasUpstream =
@@ -94,6 +98,13 @@ async function describePathname(pathname) {
     result.updateStatus = status;
     result.updateOutput = output;
   }
+  // Read after the pull, so that an updated repository is compared against the
+  // refs it has just fetched. Repositories skipped above are still inspected --
+  // those are exactly the ones where unpushed work is easiest to forget -- but
+  // their numbers reflect the last fetch, not the current state of the remote.
+  if (result.isWorkingTree && !result.isLocalOnlyRepository) {
+    result.unpushed = await getGitUnpushedState(pathname);
+  }
   const end = Date.now();
   result.elapsedTime = end - start;
   return result;
@@ -106,10 +117,12 @@ function renderLabels(descriptor) {
     isWorkingTree,
     isWorktree,
     isDirtyRepository,
+    dirtyFiles,
     isDetached,
     hasUpstream,
     updateStatus,
     isLocalOnlyRepository,
+    unpushed,
   } = descriptor;
   const labels = [];
 
@@ -130,7 +143,7 @@ function renderLabels(descriptor) {
     labels.push(dimGray(italic("[worktree]")));
   }
   if (isDirtyRepository) {
-    labels.push(red("[dirty repo]"));
+    labels.push(red(`[dirty ${dirtyFiles}]`));
   }
   if (isLocalOnlyRepository) {
     labels.push("[local repo]");
@@ -154,12 +167,30 @@ function renderLabels(descriptor) {
       break;
   }
 
+  if (unpushed) {
+    const { aheadCommits, aheadBranches, unpushedBranches } = unpushed;
+    if (aheadCommits > 0) {
+      const branches =
+        aheadBranches.length > 1 ? ` in ${aheadBranches.length} branches` : "";
+      labels.push(brightYellow(`[ahead ${aheadCommits}${branches}]`));
+    }
+    if (unpushedBranches.length > 0) {
+      labels.push(yellow(`[never pushed ${unpushedBranches.length}]`));
+    }
+  }
+
   return labels;
 }
 
 function printDescriptor(pathname, descriptor) {
-  const { elapsedTime, isWorkingTree, branchName, updateStatus, updateOutput } =
-    descriptor;
+  const {
+    elapsedTime,
+    isWorkingTree,
+    branchName,
+    updateStatus,
+    updateOutput,
+    unpushed,
+  } = descriptor;
   const output = renderLabels(descriptor);
 
   output.push(path.basename(pathname));
@@ -171,6 +202,15 @@ function printDescriptor(pathname, descriptor) {
   output.push(gray(italic(`+${elapsedTime}ms`)));
 
   console.log(output.join(" "));
+
+  if (unpushed) {
+    for (const branch of unpushed.aheadBranches) {
+      console.log(gray(`    ahead: ${branch}`));
+    }
+    for (const branch of unpushed.unpushedBranches) {
+      console.log(gray(`    never pushed: ${branch}`));
+    }
+  }
 
   const isFailed = updateStatus === UPDATE_STATUS.FAILED;
   const isUpdated = updateStatus === UPDATE_STATUS.UPDATED;

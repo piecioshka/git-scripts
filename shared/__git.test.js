@@ -14,6 +14,8 @@ const {
   isGitWorkingTree,
   isLocalOnlyGitRepository,
   isDirtyGitRepository,
+  countGitDirtyFiles,
+  getGitUnpushedState,
 } = require("./__git");
 
 const env = {
@@ -56,6 +58,24 @@ before(() => {
   sh("git checkout -q --detach", dir("detached-repo"));
   sh("git clone -q remote.git no-upstream-repo", root);
   sh("git checkout -qb feature", dir("no-upstream-repo"));
+  sh("git clone -q remote.git ahead-repo", root);
+  sh(
+    "git commit -q --allow-empty -m ahead-one && git commit -q --allow-empty -m ahead-two",
+    dir("ahead-repo"),
+  );
+  sh("git clone -q remote.git never-pushed-repo", root);
+  sh("git checkout -qb topic", dir("never-pushed-repo"));
+  sh("git commit -q --allow-empty -m topic-one", dir("never-pushed-repo"));
+  sh("git clone -q remote.git many-branches-repo", root);
+  sh("git commit -q --allow-empty -m on-main", dir("many-branches-repo"));
+  sh(
+    "git checkout -qb second origin/main && git commit -q --allow-empty -m on-second",
+    dir("many-branches-repo"),
+  );
+  sh(
+    "git branch --set-upstream-to=origin/main second",
+    dir("many-branches-repo"),
+  );
   sh("git init -q local-repo", root);
   sh("git commit -q --allow-empty -m init", dir("local-repo"));
   sh("git worktree add -q ../worktree -b wt", dir("clean-repo"));
@@ -156,5 +176,51 @@ describe("isDirtyGitRepository", () => {
     assert.equal(await isDirtyGitRepository(dir("worktree")), false);
     fs.appendFileSync(path.join(dir("worktree"), "a.txt"), "z\n");
     assert.equal(await isDirtyGitRepository(dir("worktree")), true);
+  });
+});
+
+describe("countGitDirtyFiles", () => {
+  it("counts modified tracked files", async () => {
+    assert.equal(await countGitDirtyFiles(dir("dirty-repo")), 1);
+  });
+
+  it("is zero for a clean repository and outside of one", async () => {
+    assert.equal(await countGitDirtyFiles(dir("clean-repo")), 0);
+    assert.equal(await countGitDirtyFiles(dir("plain-dir")), 0);
+  });
+});
+
+describe("getGitUnpushedState", () => {
+  it("counts commits ahead of the upstream", async () => {
+    const state = await getGitUnpushedState(dir("ahead-repo"));
+    assert.equal(state.aheadCommits, 2);
+    assert.deepEqual(state.aheadBranches, ["main"]);
+    assert.deepEqual(state.unpushedBranches, []);
+  });
+
+  it("reports branches that were never pushed", async () => {
+    const state = await getGitUnpushedState(dir("never-pushed-repo"));
+    assert.equal(state.aheadCommits, 0);
+    assert.deepEqual(state.aheadBranches, []);
+    assert.deepEqual(state.unpushedBranches, ["topic"]);
+  });
+
+  it("sums every branch, not only the checked out one", async () => {
+    const state = await getGitUnpushedState(dir("many-branches-repo"));
+    assert.equal(state.aheadCommits, 2);
+    assert.deepEqual(state.aheadBranches.sort(), ["main", "second"]);
+  });
+
+  it("is empty for a repository in sync with its remote", async () => {
+    const state = await getGitUnpushedState(dir("origin-repo"));
+    assert.equal(state.aheadCommits, 0);
+    assert.deepEqual(state.unpushedBranches, []);
+  });
+
+  it("is empty outside of a repository", async () => {
+    const state = await getGitUnpushedState(dir("plain-dir"));
+    assert.equal(state.aheadCommits, 0);
+    assert.deepEqual(state.aheadBranches, []);
+    assert.deepEqual(state.unpushedBranches, []);
   });
 });
