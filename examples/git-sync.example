@@ -1,10 +1,20 @@
 /app/ > git sync
+==> app > git fetch -pv
+From github.com:piecioshka/test
+ = [up to date]      main       -> origin/main
+
 ==> app > git pull -v
+From github.com:piecioshka/test
+ = [up to date]      main       -> origin/main
 Already up to date.
 
-==> app > git fetch -pv
-
 ==> app > git push --all -v
+Pushing to github.com:piecioshka/test.git
+To github.com:piecioshka/test.git
+ = [up to date]      main -> main
+updating local tracking ref 'refs/remotes/origin/main'
 Everything up-to-date
 
 ==> app > git push --tags -v
+Pushing to github.com:piecioshka/test.git
+Everything up-to-date

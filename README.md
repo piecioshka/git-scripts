@@ -67,7 +67,8 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Displays commits, added and removed lines between consecutive tags (`HEAD` is treated as a tag) [[example](examples/git-stats-between-tags.example)].
   - With `--level` only the tags of the given semver level are compared, so the changes of the skipped tags are merged into the surrounding range [[example](examples/git-stats-between-tags-level.example)].
 - `git sync [--verbose]`
-  - Checks if the local and remote repository states are the same [[example](examples/git-sync.example)] [[example-2](examples/git-sync-verbose.example)].
+  - Synchronizes the repository with `origin`: fetches, pulls, and pushes **every** local branch and tag [[example](examples/git-sync.example)] [[example-2](examples/git-sync-verbose.example)].
+  - Runs every step even when an earlier one fails, and exits with code `1` when any of them did.
 - `git tags-recreate-versions-from-commits`
   - Creates the annotated tags `vX.Y.Z` for the commits whose subject is a version `X.Y.Z`, skipping the tags that already exist [[example](examples/git-tags-recreate-versions-from-commits.example)].
 - `git tags-refresh`

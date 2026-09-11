@@ -1,21 +1,34 @@
 /app/ > git sync --verbose
 ==> app > git repo-origin-url
-WARNING: is a local Git repository
+github.com:piecioshka/test.git
 
 ==> app > git status -sb
-## main
+## main...origin/main
 
 ==> app > git branch --all -v
-* main 01ed7e0 Initialize project
+* main                01ed7e0 Initialize project
+  remotes/origin/HEAD -> origin/main
+  remotes/origin/main 01ed7e0 Initialize project
 
 ==> app > git tag -l
-
-==> app > git pull -v
-Already up to date.
+v1.0.0
 
 ==> app > git fetch -pv
+From github.com:piecioshka/test
+ = [up to date]      main       -> origin/main
+
+==> app > git pull -v
+From github.com:piecioshka/test
+ = [up to date]      main       -> origin/main
+Already up to date.
 
 ==> app > git push --all -v
+Pushing to github.com:piecioshka/test.git
+To github.com:piecioshka/test.git
+ = [up to date]      main -> main
+updating local tracking ref 'refs/remotes/origin/main'
 Everything up-to-date
 
 ==> app > git push --tags -v
+Pushing to github.com:piecioshka/test.git
+Everything up-to-date

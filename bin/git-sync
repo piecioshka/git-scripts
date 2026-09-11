@@ -1,18 +1,83 @@
 #!/usr/bin/env bash
 
-set -e
+# Synchronizes the repository with origin: fetches, pulls, and pushes every
+# local branch and tag.
+#
+# NOTE: Do not enable `set -e` here: every step has to run even when an
+# earlier one fails (a detached HEAD and a branch without an upstream make
+# `git pull` exit non-zero, and the pushes still make sense in both cases).
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=shared/__shared.sh
 source "$script_dir/../shared/__shared.sh"
 
-verboseEnabled=$([[ ${1} == "--verbose" ]] && echo true || echo false)
+usage() {
+  cat << EOF
 
-$verboseEnabled && __print_command_and_eval "git repo-origin-url"
-$verboseEnabled && __print_command_and_eval "git status -sb"
-$verboseEnabled && __print_command_and_eval "git branch --all -v"
-$verboseEnabled && __print_command_and_eval "git tag -l"
-__print_command_and_eval "git pull -v"
-__print_command_and_eval "git fetch -pv"
-__print_command_and_eval "git push --all -v"
-__print_command_and_eval "git push --tags -v"
+    Usage: git sync [--verbose]
+
+    Synchronizes the repository with origin: fetches, pulls, and pushes
+    every local branch and tag.
+
+    Options:
+
+        --verbose   print the state of the repository before synchronizing
+        --help      print this message
+
+EOF
+}
+
+verbose_enabled=false
+
+for argument in "$@"; do
+  case "$argument" in
+    --verbose)
+      verbose_enabled=true
+      ;;
+    --help | -h)
+      usage
+      exit 0
+      ;;
+    *)
+      __print_error "ERROR: unknown argument: $argument"
+      usage
+      exit 1
+      ;;
+  esac
+done
+
+if ! git rev-parse --is-inside-work-tree > /dev/null 2>&1; then
+  __print_error "ERROR: is not a Git repository"
+  exit 1
+fi
+
+if [ -z "$(git config --get remote.origin.url)" ]; then
+  __print_error "ERROR: is a local Git repository, nothing to synchronize with"
+  exit 1
+fi
+
+exit_code=0
+
+# Runs a step and remembers its failure, so that the remaining steps still run.
+#
+# NOTE: `__print_command_and_eval` always succeeds (it ends with an `echo`),
+# so the command has to be run here to read its real exit code.
+run_step() {
+  __print_command "$1"
+  eval "$1" || exit_code=1
+  echo ""
+}
+
+if $verbose_enabled; then
+  run_step "git repo-origin-url"
+  run_step "git status -sb"
+  run_step "git branch --all -v"
+  run_step "git tag -l"
+fi
+
+run_step "git fetch -pv"
+run_step "git pull -v"
+run_step "git push --all -v"
+run_step "git push --tags -v"
+
+exit "$exit_code"
