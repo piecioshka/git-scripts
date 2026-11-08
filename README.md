@@ -46,7 +46,7 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
 - `[DEBUG=true] git projects-push [path=./] [--verbose] [--jobs=N]`
   - Pushes every branch and tag of all projects in the workspace to the origin, `N` repositories at a time (default: 4) [[example](examples/git-projects-push.example)].
   - Pushes only the repositories that have work the origin is missing: commits ahead of the upstream, branches without an upstream (pushed with `-u`, so they are not reported again) and local tags. Branches and tags are pushed independently, so a branch the origin has moved past does not hold back the tags.
-  - Skips files, bare repositories, directories that are not repositories and local-only repositories. A dirty or detached repository is pushed as usual, because `push` only reads the refs and never touches the working tree.
+  - Skips files, bare repositories, directories that are not repositories and local-only repositories. A dirty or detached repository is pushed as usual, because `push` only reads the refs and never touches the working tree. `[dirty N]` and `[untracked N]` mark the files that a push does not send.
   - Exits with code `1` when any push fails; the output of the failed push is printed below the repository, and `--verbose` prints it for the successful ones too.
 - `[DEBUG=true] git projects-update [path=./] [--verbose] [--jobs=N]`
   - Updates all projects in the workspace with `git pull --ff-only`, `N` repositories at a time (default: 4) [[example](examples/git-projects-update.example)].
@@ -81,6 +81,7 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Displays the current user [[example](examples/git-user.example)].
 - `git zip <name>`
   - Creates an archive from the current repository [[example](examples/git-zip.example)].
+  - Packs tracked files only, including their uncommitted changes, and warns when untracked files were left out.
 
 ## Demos
 

@@ -32,3 +32,13 @@ else
   git archive --format zip --output "$file_name" "$stash"
   __print_action "Package created: \"$file_name\""
 fi
+
+# `git archive` packs tracked content only, so untracked files would be missing
+# from the package without a word. The package itself is not one of them, even
+# though it usually lands inside the repository. `grep -c` exits with 1 when it
+# counts zero, which `set -e` would otherwise treat as a failure.
+untracked=$(git ls-files --others --exclude-standard | grep -cvxF -- "${file_name#./}" || true)
+
+if [ "$untracked" -gt 0 ]; then
+  __print_warning "WARNING: untracked files not included in the package: ${untracked}"
+fi

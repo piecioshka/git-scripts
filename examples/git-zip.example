@@ -2,3 +2,4 @@
 ==> [x] # Verify if repository has no changes
 ==> No changes, building from clean repository
 ==> [x] # Package created: "../repository.zip"
+WARNING: untracked files not included in the package: 2

@@ -14,6 +14,7 @@ const {
   isGitRepository,
   isLocalOnlyGitRepository,
   countGitDirtyFiles,
+  countGitUntrackedFiles,
   countGitUnpushedTags,
   getGitUnpushedState,
   isGitWorktree,
@@ -26,6 +27,7 @@ const {
   blue,
   magenta,
   brown,
+  cyan,
   gray,
   darkGreen,
   yellow,
@@ -123,6 +125,7 @@ async function describePathname(pathname) {
   result.isLocalOnlyRepository = await isLocalOnlyGitRepository(pathname);
   result.dirtyFiles = await countGitDirtyFiles(pathname);
   result.isDirtyRepository = result.dirtyFiles > 0;
+  result.untrackedFiles = await countGitUntrackedFiles(pathname);
   result.branchName = await getGitBranchName(pathname);
   // A repository can be pushed while it is dirty or detached: `push` reads the
   // refs and never touches the working tree, so neither state is in the way.
@@ -158,6 +161,7 @@ function renderLabels(descriptor) {
     isWorktree,
     isDirtyRepository,
     dirtyFiles,
+    untrackedFiles,
     isLocalOnlyRepository,
     pushStatus,
     unpushed,
@@ -183,6 +187,9 @@ function renderLabels(descriptor) {
   }
   if (isDirtyRepository) {
     labels.push(red(`[dirty ${dirtyFiles}]`));
+  }
+  if (untrackedFiles > 0) {
+    labels.push(cyan(`[untracked ${untrackedFiles}]`));
   }
   if (isLocalOnlyRepository) {
     labels.push("[local repo]");
