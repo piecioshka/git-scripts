@@ -76,6 +76,21 @@ async function countGitDirtyFiles(pathname) {
   }
 }
 
+// Every untracked file is counted on its own, even inside a new directory.
+// Ignored files are left out, as they are not meant to be committed.
+async function countGitUntrackedFiles(pathname) {
+  if (!isGitWorkingTree(pathname)) return 0;
+
+  try {
+    const command =
+      "git ls-files --others --exclude-standard 2>/dev/null | wc -l";
+    const output = await runCommand(command, { cwd: pathname });
+    return Number(output) || 0;
+  } catch (error) {
+    return 0;
+  }
+}
+
 async function isDirtyGitRepository(pathname) {
   return (await countGitDirtyFiles(pathname)) > 0;
 }
@@ -159,6 +174,7 @@ module.exports = {
   isLocalOnlyGitRepository,
   isDirtyGitRepository,
   countGitDirtyFiles,
+  countGitUntrackedFiles,
   getGitUnpushedState,
   countGitUnpushedTags,
 };

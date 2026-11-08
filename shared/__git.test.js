@@ -15,6 +15,7 @@ const {
   isLocalOnlyGitRepository,
   isDirtyGitRepository,
   countGitDirtyFiles,
+  countGitUntrackedFiles,
   getGitUnpushedState,
   countGitUnpushedTags,
 } = require("./__git");
@@ -192,6 +193,29 @@ describe("countGitDirtyFiles", () => {
   it("is zero for a clean repository and outside of one", async () => {
     assert.equal(await countGitDirtyFiles(dir("clean-repo")), 0);
     assert.equal(await countGitDirtyFiles(dir("plain-dir")), 0);
+  });
+});
+
+describe("countGitUntrackedFiles", () => {
+  it("counts untracked files without treating them as dirty", async () => {
+    assert.equal(await countGitUntrackedFiles(dir("untracked-repo")), 1);
+    assert.equal(await countGitDirtyFiles(dir("untracked-repo")), 0);
+  });
+
+  it("counts each file of an untracked directory and skips ignored ones", async () => {
+    sh("git clone -q remote.git untracked-dir-repo", root);
+    const repo = dir("untracked-dir-repo");
+    fs.mkdirSync(path.join(repo, "nested"));
+    fs.writeFileSync(path.join(repo, "nested", "one.txt"), "1\n");
+    fs.writeFileSync(path.join(repo, "nested", "two.txt"), "2\n");
+    fs.writeFileSync(path.join(repo, "skipped.log"), "x\n");
+    fs.writeFileSync(path.join(repo, ".git", "info", "exclude"), "*.log\n");
+    assert.equal(await countGitUntrackedFiles(repo), 2);
+  });
+
+  it("is zero for a clean repository and outside of one", async () => {
+    assert.equal(await countGitUntrackedFiles(dir("clean-repo")), 0);
+    assert.equal(await countGitUntrackedFiles(dir("plain-dir")), 0);
   });
 });
 

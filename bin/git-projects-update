@@ -15,6 +15,7 @@ const {
   isGitRepository,
   isLocalOnlyGitRepository,
   countGitDirtyFiles,
+  countGitUntrackedFiles,
   getGitUnpushedState,
   isGitWorktree,
 } = require("../shared/__git");
@@ -26,6 +27,7 @@ const {
   blue,
   magenta,
   brown,
+  cyan,
   gray,
   darkGreen,
   yellow,
@@ -98,6 +100,9 @@ async function describePathname(pathname) {
     result.updateStatus = status;
     result.updateOutput = output;
   }
+  // Read after the pull, as it can bring a .gitignore that changes the count.
+  // Unlike the unpushed work below, this applies to local-only repositories too.
+  result.untrackedFiles = await countGitUntrackedFiles(pathname);
   // Read after the pull, so that an updated repository is compared against the
   // refs it has just fetched. Repositories skipped above are still inspected --
   // those are exactly the ones where unpushed work is easiest to forget -- but
@@ -118,6 +123,7 @@ function renderLabels(descriptor) {
     isWorktree,
     isDirtyRepository,
     dirtyFiles,
+    untrackedFiles,
     isDetached,
     hasUpstream,
     updateStatus,
@@ -144,6 +150,9 @@ function renderLabels(descriptor) {
   }
   if (isDirtyRepository) {
     labels.push(red(`[dirty ${dirtyFiles}]`));
+  }
+  if (untrackedFiles > 0) {
+    labels.push(cyan(`[untracked ${untrackedFiles}]`));
   }
   if (isLocalOnlyRepository) {
     labels.push("[local repo]");

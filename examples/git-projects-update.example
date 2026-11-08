@@ -1,6 +1,6 @@
 > git projects-update
 [updated] ava-live [main]
-[up-to-date] battery-life-extender [main]
+[untracked 2] [up-to-date] battery-life-extender [main]
 [up-to-date] [ahead 2] boilerplate-jasmine-typescript [main]
     ahead: main
 [dirty 3] [ahead 1] dicts [main]
