@@ -19,6 +19,6 @@
     "url": "git+https://github.com/piecioshka/git-scripts.git"
   },
   "devDependencies": {
-    "prettier": "3.9.6"
+    "prettier": "3.9.10"
   }
 }
