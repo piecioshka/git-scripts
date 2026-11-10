@@ -4,6 +4,7 @@ const process = require("node:process");
 const {
   bold,
   gray,
+  green,
   italic,
   magenta,
   red,
@@ -102,6 +103,51 @@ function formatSummary(parts, failures = 0) {
   return segments.join(gray(italic(", ")));
 }
 
+// One line of `git diff --numstat` or `git log --numstat`. Binary files have
+// `-` instead of the numbers.
+function parseNumstatLine(line) {
+  const [added, removed, ...rest] = line.split("\t");
+  const binary = added === "-" && removed === "-";
+  return {
+    file: rest.join("\t"),
+    binary,
+    added: binary ? 0 : Number(added),
+    removed: binary ? 0 : Number(removed),
+  };
+}
+
+function isNumstatLine(line) {
+  return /^(\d+|-)\t(\d+|-)\t/.test(line);
+}
+
+function sumLines(files) {
+  return files.reduce(
+    (sum, { added, removed }) => ({
+      added: sum.added + added,
+      removed: sum.removed + removed,
+    }),
+    { added: 0, removed: 0 },
+  );
+}
+
+function plural(count, noun) {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+// `[+12 -3]` next to the name of a repository.
+function formatLineLabel({ added, removed }) {
+  return `[${green(`+${added}`)} ${red(`-${removed}`)}]`;
+}
+
+// The totals that end the summary, worded like `git diff --shortstat`.
+function formatLineTotals({ files, added, removed }) {
+  return [
+    `${plural(files, "file")} changed`,
+    `${plural(added, "insertion")}(+)`,
+    `${plural(removed, "deletion")}(-)`,
+  ];
+}
+
 // A pager or `head` closing the pipe early is not an error.
 function quitOnClosedPipe() {
   process.stdout.on("error", (error) => {
@@ -121,5 +167,11 @@ module.exports = {
   formatHeader,
   formatError,
   formatSummary,
+  parseNumstatLine,
+  isNumstatLine,
+  sumLines,
+  plural,
+  formatLineLabel,
+  formatLineTotals,
   quitOnClosedPipe,
 };

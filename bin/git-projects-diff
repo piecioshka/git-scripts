@@ -10,6 +10,10 @@ const {
   formatHeader,
   formatError,
   formatSummary,
+  parseNumstatLine,
+  sumLines,
+  formatLineLabel,
+  formatLineTotals,
   quitOnClosedPipe,
 } = require("../shared/__projects");
 const {
@@ -82,18 +86,6 @@ async function getDiff(pathname, { unified, color }) {
   ]);
 }
 
-// `git diff --numstat` prints `-` instead of numbers for binary files.
-function parseNumstatLine(line) {
-  const [added, removed, ...rest] = line.split("\t");
-  const binary = added === "-" && removed === "-";
-  return {
-    file: rest.join("\t"),
-    binary,
-    added: binary ? 0 : Number(added),
-    removed: binary ? 0 : Number(removed),
-  };
-}
-
 async function getChangedFiles(pathname) {
   const output = await git(pathname, [
     "diff",
@@ -119,16 +111,6 @@ async function describePathname(pathname, options) {
   }
   result.elapsedTime = Date.now() - start;
   return result;
-}
-
-function sumLines(files) {
-  return files.reduce(
-    (sum, { added, removed }) => ({
-      added: sum.added + added,
-      removed: sum.removed + removed,
-    }),
-    { added: 0, removed: 0 },
-  );
 }
 
 function formatFile({ file, binary, added, removed }, width) {
@@ -157,8 +139,7 @@ function renderLabels(descriptor) {
     labels.push(cyan(`[untracked ${descriptor.untrackedFiles}]`));
   }
   if (descriptor.files) {
-    const { added, removed } = sumLines(descriptor.files);
-    labels.push(`[${green(`+${added}`)} ${red(`-${removed}`)}]`);
+    labels.push(formatLineLabel(sumLines(descriptor.files)));
   }
   return labels;
 }
@@ -201,19 +182,9 @@ function parseArgs(argv) {
   });
 }
 
-function plural(count, noun) {
-  return `${count} ${noun}${count === 1 ? "" : "s"}`;
-}
-
 function printSummary({ changed, clean, failures, lines }) {
   const parts = [`${changed} with changes`, `${clean} clean`];
-  if (lines) {
-    parts.push(
-      `${plural(lines.files, "file")} changed`,
-      `${plural(lines.added, "insertion")}(+)`,
-      `${plural(lines.removed, "deletion")}(-)`,
-    );
-  }
+  if (lines) parts.push(...formatLineTotals(lines));
   console.log(formatSummary(parts, failures));
 }
 

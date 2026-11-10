@@ -1,101 +1,126 @@
 #!/usr/bin/env node
 
-const path = require("node:path");
 const process = require("node:process");
 const { formatDate, runCommand } = require("../shared/__shared");
-const { getDirectories } = require("../shared/__filesystem");
+const { listWorkspace, mapInOrder } = require("../shared/__workspace");
 const { isGitWorkingTree, getGitBranchName } = require("../shared/__git");
 const {
-  bold,
-  underline,
-  white,
-  red,
-  green,
-  yellow,
-  magenta,
-  cyan,
-} = require("../shared/__colors");
+  COMMON_OPTIONS,
+  parseProjectsArgs,
+  applyColorMode,
+  formatHeader,
+  formatError,
+  formatSummary,
+  parseNumstatLine,
+  isNumstatLine,
+  sumLines,
+  plural,
+  formatLineLabel,
+  formatLineTotals,
+  quitOnClosedPipe,
+} = require("../shared/__projects");
+const { cyan } = require("../shared/__colors");
 
-// `git log --shortstat` prints a line like `3 files changed, 10 insertions(+), 2 deletions(-)`
-// per commit, and skips the parts that are zero.
-const STATS = {
-  changes: / (\d+) files? changed/g,
-  insertions: / (\d+) insertions?\(\+\)/g,
-  deletions: / (\d+) deletions?\(-\)/g,
-};
+const USAGE = `
+    Usage: [DEBUG=true] git projects-daily-status [path=./] [--color=WHEN] [--jobs=N]
 
-function sumMatches(output, pattern) {
-  return [...output.matchAll(pattern)].reduce(
-    (sum, match) => sum + Number(match[1]),
-    0,
-  );
+    Shows the projects of the workspace with commits made today, on any branch,
+    with the number of files changed and lines added and removed by them.
+
+    Options:
+${COMMON_OPTIONS}
+`;
+
+const COMMIT_MARKER = "commit ";
+
+// Every commit of today starts with a `commit <hash>` line, followed by the
+// `--numstat` lines of the files it changed.
+function parseLog(output) {
+  const lines = output.split("\n");
+  const commits = lines.filter((line) => line.startsWith(COMMIT_MARKER));
+  const changes = lines.filter(isNumstatLine).map(parseNumstatLine);
+  const files = new Set(changes.map(({ file }) => file));
+  return { commits: commits.length, files: files.size, ...sumLines(changes) };
 }
 
-async function countLines(pathname) {
+async function describePathname(pathname) {
+  const start = Date.now();
+  if (!isGitWorkingTree(pathname)) return { isWorkingTree: false };
   const today = formatDate(new Date());
-  const command = `git log --all --since="${today} 00:00:00" --before="${today} 23:59:59" --shortstat --oneline`;
+  const command = [
+    "git log --all --numstat",
+    `--format='${COMMIT_MARKER}%H'`,
+    `--since="${today} 00:00:00"`,
+    `--before="${today} 23:59:59"`,
+  ].join(" ");
   const output = await runCommand(command, { cwd: pathname });
-
   return {
-    pathname,
+    isWorkingTree: true,
     branchName: await getGitBranchName(pathname),
-    changes: sumMatches(output, STATS.changes),
-    insertions: sumMatches(output, STATS.insertions),
-    deletions: sumMatches(output, STATS.deletions),
+    ...parseLog(output),
+    elapsedTime: Date.now() - start,
   };
 }
 
-function displayProjectStatus(project) {
-  const { pathname, branchName, changes, insertions, deletions } = project;
-  const status = [
-    `${changes} changes`,
-    `${insertions} insertions`,
-    `${deletions} deletions`,
-  ];
-  const statusColors = [
-    changes > 0 ? cyan : white,
-    insertions > 0 ? green : white,
-    deletions > 0 ? red : white,
+function printDescriptor(pathname, descriptor) {
+  const labels = [
+    cyan(`[${plural(descriptor.commits, "commit")}]`),
+    `[${plural(descriptor.files, "file")}]`,
+    formatLineLabel(descriptor),
   ];
   console.log(
-    `${underline(bold(yellow(pathname)))} ${magenta(`[${branchName}]`)}`,
+    formatHeader({
+      labels,
+      pathname,
+      branchName: descriptor.branchName,
+      elapsedTime: descriptor.elapsedTime,
+    }),
   );
-  status.forEach((item, index) => {
-    console.log(`- ${statusColors[index](item)}`);
-  });
-}
-
-async function collectProjects(files, workspacePath) {
-  const repositories = files
-    .map((name) => path.resolve(workspacePath, name))
-    .filter(isGitWorkingTree);
-
-  const results = await Promise.allSettled(repositories.map(countLines));
-
-  results
-    .filter((result) => result.status === "rejected")
-    .forEach((result) => {
-      console.error(`${red("[error]")} ${result.reason.message}`);
-    });
-
-  return results
-    .filter((result) => result.status === "fulfilled")
-    .map((result) => result.value)
-    .filter((project) => project.changes > 0);
 }
 
 async function main() {
-  const workspacePath = process.argv[2] || process.cwd();
-  const files = getDirectories(workspacePath).sort();
-  const projects = await collectProjects(files, workspacePath);
-
-  if (projects.length === 0) {
-    console.log(yellow("Nothing happened today"));
-    return;
-  }
-
-  projects.forEach(displayProjectStatus);
+  const options = parseProjectsArgs(process.argv.slice(2), { usage: USAGE });
+  if (options.help) return console.log(USAGE);
+  applyColorMode(options.color);
+  const pathnames = listWorkspace(options.workspacePath || process.cwd());
+  const summary = { active: 0, quiet: 0, failures: 0 };
+  const lines = { files: 0, added: 0, removed: 0 };
+  await mapInOrder(
+    pathnames,
+    options.jobs,
+    describePathname,
+    (pathname, { value, error }) => {
+      if (error) {
+        summary.failures += 1;
+        console.error(formatError(pathname, error));
+        return;
+      }
+      if (!value.isWorkingTree) return;
+      if (value.commits === 0) {
+        summary.quiet += 1;
+        return;
+      }
+      summary.active += 1;
+      lines.files += value.files;
+      lines.added += value.added;
+      lines.removed += value.removed;
+      printDescriptor(pathname, value);
+    },
+  );
+  console.log(
+    formatSummary(
+      [
+        `${summary.active} with commits today`,
+        `${summary.quiet} without`,
+        ...formatLineTotals(lines),
+      ],
+      summary.failures,
+    ),
+  );
+  process.exitCode = summary.failures > 0 ? 1 : 0;
 }
+
+quitOnClosedPipe();
 
 main().catch((error) => {
   console.error(error.message);

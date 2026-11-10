@@ -1,9 +1,4 @@
 > git projects-daily-status
-/Users/user1/projects/eslint-config-piecioshka
-- 15 changes
-- 0 insertions
-- 9 deletions
-/Users/user1/projects/git-scripts
-- 1 changes
-- 4 insertions
-- 2 deletions
+[2 commits] [5 files] [+42 -9] eslint-config-piecioshka [main] +61ms
+[1 commit] [1 file] [+4 -2] git-scripts [main] +48ms
+2 with commits today, 3 without, 6 files changed, 46 insertions(+), 11 deletions(-)

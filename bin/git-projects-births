@@ -2,23 +2,46 @@
 
 const path = require("node:path");
 const process = require("node:process");
-const { getDirectories } = require("../shared/__filesystem");
 const { isGitWorkingTree } = require("../shared/__git");
 const { formatDate, runCommand, sortBy } = require("../shared/__shared");
-const { yellow, brown, gray, red } = require("../shared/__colors");
+const { listWorkspace, mapInOrder } = require("../shared/__workspace");
+const {
+  COMMON_OPTIONS,
+  parseProjectsArgs,
+  applyColorMode,
+  formatError,
+  formatSummary,
+  quitOnClosedPipe,
+} = require("../shared/__projects");
+const { bold, brown, gray } = require("../shared/__colors");
+
+const USAGE = `
+    Usage: [DEBUG=true] git projects-births [path=./] [--color=WHEN] [--jobs=N]
+
+    Shows the date and the author of the first commit of every project in the
+    workspace, grouped by year.
+
+    Options:
+${COMMON_OPTIONS}
+`;
 
 // The root commit, without walking through the whole history and parsing
 // the human-readable log output.
 const GIT_ROOT_COMMIT = "git log --max-parents=0 --format=%aI%n%aN HEAD";
 
 async function describeRepository(pathname) {
+  if (!isGitWorkingTree(pathname)) return null;
   const output = await runCommand(GIT_ROOT_COMMIT, { cwd: pathname });
   // A repository with several roots (e.g. merged subtrees) lists them all,
   // the oldest one is the last one.
   const lines = output.split("\n").filter(Boolean);
   const date = lines[lines.length - 2];
   const author = lines[lines.length - 1];
-  return { startDate: new Date(date), author };
+  return {
+    startDate: new Date(date),
+    author,
+    projectName: path.basename(pathname),
+  };
 }
 
 function toRecord(project) {
@@ -29,14 +52,8 @@ function toRecord(project) {
 
 function displayResults(projects) {
   const years = Object.keys(projects).sort();
-
-  if (years.length === 0) {
-    console.log(yellow("Not found any git repository in this directory"));
-    return;
-  }
-
   years.forEach((year) => {
-    console.log(year);
+    console.log(bold(year));
     const projectRecords = projects[year]
       .sort(sortBy((v) => v.startDate.getTime()))
       .map(toRecord);
@@ -44,35 +61,40 @@ function displayResults(projects) {
   });
 }
 
-async function collectProjects(files, workspacePath) {
-  const projects = {};
-
-  for (const file of files) {
-    const pathname = path.resolve(workspacePath, file);
-
-    if (!isGitWorkingTree(pathname)) {
-      continue;
-    }
-
-    try {
-      const { startDate, author } = await describeRepository(pathname);
-      const year = startDate.getFullYear();
-      projects[year] ??= [];
-      projects[year].push({ startDate, pathname, projectName: file, author });
-    } catch (error) {
-      console.error(`${red("[error]")} ${file}: ${error.message}`);
-    }
-  }
-
-  return projects;
-}
-
 async function main() {
-  const workspacePath = process.argv[2] || process.cwd();
-  const files = getDirectories(workspacePath).sort();
-  const projects = await collectProjects(files, workspacePath);
+  const options = parseProjectsArgs(process.argv.slice(2), { usage: USAGE });
+  if (options.help) return console.log(USAGE);
+  applyColorMode(options.color);
+  const pathnames = listWorkspace(options.workspacePath || process.cwd());
+  const projects = {};
+  let count = 0;
+  let failures = 0;
+  // The years need every repository, so nothing is printed before the end;
+  // the errors still come in the order of the workspace.
+  await mapInOrder(
+    pathnames,
+    options.jobs,
+    describeRepository,
+    (pathname, { value, error }) => {
+      if (error) {
+        failures += 1;
+        console.error(formatError(pathname, error));
+        return;
+      }
+      if (!value) return;
+      const year = value.startDate.getFullYear();
+      projects[year] ??= [];
+      projects[year].push(value);
+      count += 1;
+    },
+  );
   displayResults(projects);
+  const repositories = count === 1 ? "repository" : "repositories";
+  console.log(formatSummary([`${count} ${repositories}`], failures));
+  process.exitCode = failures > 0 ? 1 : 0;
 }
+
+quitOnClosedPipe();
 
 main().catch((error) => {
   console.error(error.message);

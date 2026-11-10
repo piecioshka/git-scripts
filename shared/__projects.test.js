@@ -10,6 +10,11 @@ const {
   formatHeader,
   formatError,
   formatSummary,
+  parseNumstatLine,
+  isNumstatLine,
+  sumLines,
+  plural,
+  formatLineTotals,
 } = require("./__projects");
 
 const usage = "usage";
@@ -139,5 +144,50 @@ describe("formatting with colors", () => {
     } finally {
       setColorsEnabled(true);
     }
+  });
+});
+
+describe("numstat", () => {
+  it("parses the counts and the path of a text file", () => {
+    assert.deepEqual(parseNumstatLine("12\t3\tsrc/a b.js"), {
+      file: "src/a b.js",
+      binary: false,
+      added: 12,
+      removed: 3,
+    });
+  });
+
+  it("counts a binary file as zero lines", () => {
+    assert.deepEqual(parseNumstatLine("-\t-\tlogo.png"), {
+      file: "logo.png",
+      binary: true,
+      added: 0,
+      removed: 0,
+    });
+  });
+
+  it("recognizes numstat lines only", () => {
+    assert.equal(isNumstatLine("1\t0\tfile"), true);
+    assert.equal(isNumstatLine("-\t-\tfile"), true);
+    assert.equal(isNumstatLine("commit 0123abc"), false);
+    assert.equal(isNumstatLine(""), false);
+  });
+
+  it("sums the added and removed lines", () => {
+    const files = [
+      { added: 1, removed: 2 },
+      { added: 10, removed: 0 },
+    ];
+    assert.deepEqual(sumLines(files), { added: 11, removed: 2 });
+  });
+
+  it("words the totals like git diff --shortstat", () => {
+    assert.equal(plural(1, "file"), "1 file");
+    assert.equal(plural(0, "file"), "0 files");
+    assert.deepEqual(formatLineTotals({ files: 1, added: 2, removed: 1 }), [
+      "1 file changed",
+      "2 insertions(+)",
+      "1 deletion(-)",
+    ]);
   });
 });

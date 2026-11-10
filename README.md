@@ -39,10 +39,10 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Creates a commit with all changes and pushes it to the origin [[example](examples/git-fire.example)].
 - `git new-issue <issue_id>`
   - Useful for starting a new task: creates a worktree with a branch `<folder>-<issue_id>` from the default branch, an empty commit and a draft pull request (requires `gh`).
-- `git projects-births [path=./]`
-  - Displays the date and the author of the first commit of every project in the workspace, grouped by year [[example](examples/git-projects-births.example)].
-- `git projects-daily-status [path=./]`
-  - Displays the projects in the workspace with commits made today, and the number of changed files and lines [[example](examples/git-projects-daily-status.example)].
+- `[DEBUG=true] git projects-births [path=./] [--color=auto|always|never] [--jobs=N]`
+  - Displays the date and the author of the first commit of every project in the workspace, grouped by year, and ends with the number of repositories [[example](examples/git-projects-births.example)].
+- `[DEBUG=true] git projects-daily-status [path=./] [--color=auto|always|never] [--jobs=N]`
+  - Displays the projects in the workspace with commits made today on any branch: `[N commits]`, `[N files]` (every file counted once, however many commits changed it) and `[+added -removed]`, and ends with the totals of the whole workspace [[example](examples/git-projects-daily-status.example)].
 - `[DEBUG=true] git projects-push [path=./] [--verbose] [--color=auto|always|never] [--jobs=N]`
   - Pushes every branch and tag of all projects in the workspace to the origin, `N` repositories at a time (default: 4) [[example](examples/git-projects-push.example)].
   - Pushes only the repositories that have work the origin is missing: commits ahead of the upstream, branches without an upstream (pushed with `-u`, so they are not reported again) and local tags. Branches and tags are pushed independently, so a branch the origin has moved past does not hold back the tags.
@@ -52,7 +52,7 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Displays the changes of tracked files, staged and unstaged (`git diff HEAD`, 1 line of context by default), of all projects in the workspace, `N` repositories at a time (default: 4).
   - Skips repositories without changes and ends with the number of repositories with changes and clean ones. Untracked files are only counted as `[untracked N]`, because Git has no diff for them.
   - `--stat` lists only the changed files with the number of added and removed lines (`binary` for binary files) instead of the diff, shows the totals next to every repository and ends with the number of changed files, insertions and deletions in the whole workspace.
-  - All `git projects-*` commands (`diff`, `push`, `status`, `update`) print the same way: one line per entry, `[labels] name [branch] +Nms`, the details indented below it, `[error] name: message` on stderr and a summary line at the end. `--color=auto|always|never` turns the colors of the script and of Git on or off (`auto` colors a terminal only, unless `NO_COLOR` is set), and a pager or `head` closing the pipe ends them quietly.
+  - All `git projects-*` commands (`births`, `daily-status`, `diff`, `push`, `status`, `update`) print the same way: one line per entry, `[labels] name [branch] +Nms`, the details indented below it, `[error] name: message` on stderr and a summary line at the end. `--color=auto|always|never` turns the colors of the script and of Git on or off (`auto` colors a terminal only, unless `NO_COLOR` is set), and a pager or `head` closing the pipe ends them quietly.
 - `[DEBUG=true] git projects-status [path=./] [--changed] [--color=auto|always|never] [--jobs=N]`
   - Displays the state of all projects in the workspace, `N` repositories at a time (default: 4): `[dirty N]`, `[untracked N]`, `[ahead N]`, `[never pushed N]`, `[detached]`, `[no upstream]`, `[local repo]` or `[clean]`, with the changed files (`git status --short`) and the unpushed branches listed below the repository (a lone ahead branch is not repeated when it is the current one, as its name already stands next to `[ahead N]`).
   - `--changed` hides the repositories that have nothing to report. Nothing is fetched, so `[ahead N]` comes from the refs of the last fetch. Ends with the number of repositories with changes and clean ones.
