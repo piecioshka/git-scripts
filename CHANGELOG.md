@@ -2,6 +2,7 @@
 
 All notable changes to this project, newest first.
 
+- 2026-11-10 - Added `git projects-diff`, which displays `git diff --unified=1` of all nested Git repositories.
 - 2026-11-10 - Added `git projects-status`, which displays `git status -sb` of all nested Git repositories.
 - 2026-11-08 - Added `[untracked N]` to `git projects-push`, and a warning to `git zip` when untracked files were left out of the package; until now `git zip` could report a clean build of a package that was missing new files.
 - 2026-11-08 - Added `[untracked N]` to `git projects-update`: counts the untracked files that are not ignored, in local-only repositories too. Untracked files still do not make a repository dirty or stop the update. `countGitUntrackedFiles` was added to the shared Git helpers.
