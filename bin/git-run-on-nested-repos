@@ -5,6 +5,12 @@ const process = require("node:process");
 const { isDirectory, getDirectories } = require("../shared/__filesystem");
 const { isGitWorkingTree } = require("../shared/__git");
 const { runCommand } = require("../shared/__shared");
+const {
+  parseColor,
+  applyColorMode,
+  formatSummary,
+  quitOnClosedPipe,
+} = require("../shared/__projects");
 const { underline, bold, blue, yellow, red } = require("../shared/__colors");
 
 const USAGE = `
@@ -16,9 +22,9 @@ const USAGE = `
     Options:
 
         --max-depth=N   how deep to look for repositories (default: 5)
-        --color=WHEN    keep the colors of the command output: auto, always
-                        or never (default: auto - only when printing to a
-                        terminal, unless NO_COLOR is set)
+        --color=WHEN    colors of the output, the command's included: auto,
+                        always or never (default: auto - only when printing
+                        to a terminal, unless NO_COLOR is set)
 
     Examples:
 
@@ -28,7 +34,6 @@ const USAGE = `
 `;
 
 const DEFAULT_MAX_DEPTH = 5;
-const COLOR_MODES = ["auto", "always", "never"];
 
 function parseArguments(argv) {
   const options = {
@@ -47,11 +52,7 @@ function parseArguments(argv) {
       }
       options.maxDepth = value;
     } else if (argument.startsWith("--color=")) {
-      const value = argument.slice("--color=".length);
-      if (!COLOR_MODES.includes(value)) {
-        throw new Error(`Invalid value for --color: ${argument}`);
-      }
-      options.color = value;
+      options.color = parseColor(argument);
     } else if (argument.startsWith("-")) {
       throw new Error(`Unknown option: ${argument}\n${USAGE}`);
     } else if (options.command === undefined) {
@@ -61,13 +62,6 @@ function parseArguments(argv) {
     }
   }
   return options;
-}
-
-function shouldColorize(mode) {
-  if (mode === "auto") {
-    return Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
-  }
-  return mode === "always";
 }
 
 // The command runs with its stdout attached to a pipe, so Git (and most other
@@ -83,20 +77,21 @@ function colorEnvironment() {
   };
 }
 
-async function runInRepository(pathname, command, env) {
+async function runInRepository(pathname, command, { env, summary }) {
   console.log(`${underline(bold(yellow(pathname)))} ${blue(">")} ${command}`);
+  summary.repositories += 1;
   try {
     const output = await runCommand(command, { cwd: pathname, env });
     if (output) {
       console.log(output);
     }
   } catch (error) {
+    summary.failures += 1;
     console.error(red(error.message));
-    process.exitCode = 1;
   }
 }
 
-async function enter(currentPath, depth, { command, maxDepth, env }) {
+async function enter(currentPath, depth, context) {
   for (const name of getDirectories(currentPath).sort()) {
     const pathname = path.join(currentPath, name);
 
@@ -105,9 +100,9 @@ async function enter(currentPath, depth, { command, maxDepth, env }) {
     }
 
     if (isGitWorkingTree(pathname)) {
-      await runInRepository(pathname, command, env);
-    } else if (depth < maxDepth) {
-      await enter(pathname, depth + 1, { command, maxDepth, env });
+      await runInRepository(pathname, context.command, context);
+    } else if (depth < context.maxDepth) {
+      await enter(pathname, depth + 1, context);
     }
   }
 }
@@ -120,9 +115,21 @@ async function main() {
     return void process.exit(1);
   }
 
-  const env = shouldColorize(options.color) ? colorEnvironment() : undefined;
-  await enter(process.cwd(), 1, { ...options, env });
+  const env = applyColorMode(options.color) ? colorEnvironment() : undefined;
+  const summary = { repositories: 0, failures: 0 };
+  await enter(process.cwd(), 1, { ...options, env, summary });
+  console.log(
+    formatSummary(
+      [
+        `${summary.repositories} ${summary.repositories === 1 ? "repository" : "repositories"}`,
+      ],
+      summary.failures,
+    ),
+  );
+  process.exitCode = summary.failures > 0 ? 1 : 0;
 }
+
+quitOnClosedPipe();
 
 main().catch((error) => {
   console.error(error.message);

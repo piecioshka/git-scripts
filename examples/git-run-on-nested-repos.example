@@ -14,3 +14,4 @@ git@github.com:piecioshka/fakes-auth.git
 
 /Users/user1/projects/git-scripts > git config --get remote.origin.url
 git@github.com:piecioshka/git-scripts.git
+5 repositories
