@@ -1,21 +1,219 @@
-#!/usr/bin/env bash
+#!/usr/bin/env node
 
-set -e
+const path = require("node:path");
+const process = require("node:process");
+const { runCommand } = require("../shared/__shared");
+const { isFile } = require("../shared/__filesystem");
+const { listWorkspace, mapInOrder } = require("../shared/__workspace");
+const {
+  getGitBranchName,
+  getGitUpstream,
+  isGitBareRepository,
+  isGitWorkingTree,
+  isGitWorktree,
+  isLocalOnlyGitRepository,
+  countGitDirtyFiles,
+  countGitUntrackedFiles,
+  getGitUnpushedState,
+} = require("../shared/__git");
+const {
+  dimGray,
+  italic,
+  red,
+  blue,
+  magenta,
+  brown,
+  cyan,
+  gray,
+  darkGreen,
+  yellow,
+  brightYellow,
+} = require("../shared/__colors");
 
-# Shows `git status -sb` of every Git repository found below the current
-# directory. The options (--max-depth, --color) go to `git run-on-nested-repos`,
-# which keeps the colors when printing to a terminal.
-if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-    cat <<'EOF'
+const USAGE = `
+    Usage: [DEBUG=true] git projects-status [path=./] [--changed] [--jobs=N]
 
-    Usage: git projects-status [--max-depth=N] [--color=WHEN]
+    Shows the state of every project in the workspace: modified and untracked
+    files, commits that are not pushed and branches that were never pushed.
+    The changed files are listed below the repository.
 
-    Shows the short status (with the branch) of every Git repository found
-    below the current directory. The options are passed to
-    `git run-on-nested-repos`.
+    Options:
 
-EOF
-    exit 0
-fi
+        --changed   hide the repositories that have nothing to report
+        --jobs=N    number of repositories inspected in parallel (default: 4)
+`;
 
-exec git run-on-nested-repos "git status -sb" "$@"
+const DEFAULT_JOBS = 4;
+
+async function getShortStatus(pathname) {
+  const command = "git -c color.status=always status --short";
+  try {
+    return await runCommand(command, { cwd: pathname });
+  } catch (error) {
+    return "";
+  }
+}
+
+async function describePathname(pathname) {
+  const start = Date.now();
+  const result = {
+    isFile: isFile(pathname),
+    isBareRepository: isGitBareRepository(pathname),
+    isWorkingTree: isGitWorkingTree(pathname),
+    isWorktree: isGitWorktree(pathname),
+  };
+  if (result.isWorkingTree) {
+    result.isLocalOnlyRepository = await isLocalOnlyGitRepository(pathname);
+    result.dirtyFiles = await countGitDirtyFiles(pathname);
+    result.untrackedFiles = await countGitUntrackedFiles(pathname);
+    result.branchName = await getGitBranchName(pathname);
+    result.isDetached = result.branchName === "";
+    result.hasUpstream =
+      !result.isDetached && (await getGitUpstream(pathname)) !== null;
+    if (!result.isLocalOnlyRepository) {
+      result.unpushed = await getGitUnpushedState(pathname);
+    }
+    if (result.dirtyFiles > 0 || result.untrackedFiles > 0) {
+      result.shortStatus = await getShortStatus(pathname);
+    }
+  }
+  result.elapsedTime = Date.now() - start;
+  return result;
+}
+
+function hasNothingToReport(descriptor) {
+  const { isWorkingTree, dirtyFiles, untrackedFiles, unpushed } = descriptor;
+  if (!isWorkingTree) return true;
+  const hasUnpushedWork =
+    unpushed &&
+    (unpushed.aheadCommits > 0 || unpushed.unpushedBranches.length > 0);
+  return dirtyFiles === 0 && untrackedFiles === 0 && !hasUnpushedWork;
+}
+
+function renderUnpushedLabels(unpushed) {
+  const labels = [];
+  const { aheadCommits, aheadBranches, unpushedBranches } = unpushed;
+  if (aheadCommits > 0) {
+    const branches =
+      aheadBranches.length > 1 ? ` in ${aheadBranches.length} branches` : "";
+    labels.push(brightYellow(`[ahead ${aheadCommits}${branches}]`));
+  }
+  if (unpushedBranches.length > 0) {
+    labels.push(yellow(`[never pushed ${unpushedBranches.length}]`));
+  }
+  return labels;
+}
+
+function renderLabels(descriptor) {
+  if (descriptor.isFile) return [blue("[file]")];
+  if (descriptor.isBareRepository) return [dimGray("[bare repo]")];
+  if (!descriptor.isWorkingTree) return [brown("[not repo]")];
+
+  const labels = [];
+  if (descriptor.isWorktree) labels.push(dimGray(italic("[worktree]")));
+  if (descriptor.dirtyFiles > 0) {
+    labels.push(red(`[dirty ${descriptor.dirtyFiles}]`));
+  }
+  if (descriptor.untrackedFiles > 0) {
+    labels.push(cyan(`[untracked ${descriptor.untrackedFiles}]`));
+  }
+  if (descriptor.isLocalOnlyRepository) {
+    labels.push("[local repo]");
+  } else if (descriptor.isDetached) {
+    labels.push(brown("[detached]"));
+  } else if (!descriptor.hasUpstream) {
+    labels.push(brown("[no upstream]"));
+  }
+  if (descriptor.unpushed) {
+    labels.push(...renderUnpushedLabels(descriptor.unpushed));
+  }
+  if (hasNothingToReport(descriptor)) labels.push(darkGreen("[clean]"));
+  return labels;
+}
+
+function printDescriptor(pathname, descriptor) {
+  const output = renderLabels(descriptor);
+  output.push(path.basename(pathname));
+  if (descriptor.isWorkingTree && descriptor.branchName) {
+    output.push(magenta(`[${descriptor.branchName}]`));
+  }
+  output.push(gray(italic(`+${descriptor.elapsedTime}ms`)));
+  console.log(output.join(" "));
+
+  if (descriptor.unpushed) {
+    for (const branch of descriptor.unpushed.aheadBranches) {
+      console.log(gray(`    ahead: ${branch}`));
+    }
+    for (const branch of descriptor.unpushed.unpushedBranches) {
+      console.log(gray(`    never pushed: ${branch}`));
+    }
+  }
+  if (descriptor.shortStatus) {
+    for (const line of descriptor.shortStatus.split("\n")) {
+      console.log(`    ${line}`);
+    }
+  }
+}
+
+function parseJobs(arg) {
+  const jobs = Number(arg.slice("--jobs=".length));
+  if (!Number.isInteger(jobs) || jobs < 1) {
+    throw new Error(`Invalid value for --jobs: ${arg}`);
+  }
+  return jobs;
+}
+
+function parseArgs(argv) {
+  const options = { changed: false, jobs: DEFAULT_JOBS, workspacePath: null };
+  for (const arg of argv) {
+    if (arg === "--help" || arg === "-h") {
+      console.log(USAGE);
+      process.exit(0);
+    } else if (arg === "--changed") {
+      options.changed = true;
+    } else if (arg.startsWith("--jobs=")) {
+      options.jobs = parseJobs(arg);
+    } else if (arg.startsWith("-")) {
+      throw new Error(`Unknown option: ${arg}\n${USAGE}`);
+    } else if (options.workspacePath === null) {
+      options.workspacePath = arg;
+    } else {
+      throw new Error(`Unexpected argument: ${arg}\n${USAGE}`);
+    }
+  }
+  return options;
+}
+
+async function main() {
+  const options = parseArgs(process.argv.slice(2));
+  const pathnames = listWorkspace(options.workspacePath || process.cwd());
+  let failures = 0;
+  await mapInOrder(
+    pathnames,
+    options.jobs,
+    describePathname,
+    (pathname, { value, error }) => {
+      if (error) {
+        failures += 1;
+        console.error(
+          `${red("[error]")} ${path.basename(pathname)}: ${error.message}`,
+        );
+        return;
+      }
+      if (options.changed && hasNothingToReport(value)) return;
+      printDescriptor(pathname, value);
+    },
+  );
+  process.exitCode = failures > 0 ? 1 : 0;
+}
+
+// A pager or `head` closing the pipe early is not an error.
+process.stdout.on("error", (error) => {
+  if (error.code === "EPIPE") process.exit(0);
+  throw error;
+});
+
+main().catch((err) => {
+  console.error(err.message);
+  process.exitCode = 1;
+});

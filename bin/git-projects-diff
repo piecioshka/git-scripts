@@ -1,21 +1,209 @@
-#!/usr/bin/env bash
+#!/usr/bin/env node
 
-set -e
+const path = require("node:path");
+const process = require("node:process");
+const { execFile } = require("node:child_process");
+const { listWorkspace, mapInOrder } = require("../shared/__workspace");
+const {
+  getGitBranchName,
+  isGitWorkingTree,
+  countGitDirtyFiles,
+  countGitUntrackedFiles,
+} = require("../shared/__git");
+const {
+  bold,
+  red,
+  cyan,
+  magenta,
+  gray,
+  italic,
+} = require("../shared/__colors");
 
-# Shows `git diff --unified=1` of every Git repository found below the current
-# directory. The options (--max-depth, --color) go to `git run-on-nested-repos`,
-# which keeps the colors when printing to a terminal.
-if [[ "$1" == "--help" || "$1" == "-h" ]]; then
-    cat <<'EOF'
+const USAGE = `
+    Usage: [DEBUG=true] git projects-diff [path=./] [--unified=N] [--color=WHEN] [--jobs=N]
 
-    Usage: git projects-diff [--max-depth=N] [--color=WHEN]
+    Shows the changes of tracked files, staged and unstaged (git diff HEAD), of
+    every project in the workspace. Repositories without changes are skipped;
+    untracked files are only counted, as Git has no diff for them.
 
-    Shows the unstaged changes (with one line of context) of every Git
-    repository found below the current directory. The options are passed to
-    `git run-on-nested-repos`.
+    Options:
 
-EOF
-    exit 0
-fi
+        --unified=N     lines of context around every change (default: 1)
+        --color=WHEN    colors of the diff: auto, always or never (default:
+                        auto - only when printing to a terminal, unless
+                        NO_COLOR is set)
+        --jobs=N        number of repositories read in parallel (default: 4)
+`;
 
-exec git run-on-nested-repos "git diff --unified=1" "$@"
+const DEFAULT_JOBS = 4;
+const DEFAULT_UNIFIED = 1;
+const COLOR_MODES = ["auto", "always", "never"];
+
+function shouldColorize(mode) {
+  if (mode === "auto") {
+    return Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
+  }
+  return mode === "always";
+}
+
+// Lockfiles and generated files make diffs far larger than the 1 MB that
+// `exec` buffers by default.
+const DIFF_MAX_BUFFER = 64 * 1024 * 1024;
+
+function git(pathname, args) {
+  return new Promise((resolve, reject) => {
+    execFile(
+      "git",
+      args,
+      { cwd: pathname, maxBuffer: DIFF_MAX_BUFFER },
+      (error, stdout, stderr) => {
+        if (error) {
+          error.message = `${error.message}\n${stderr}`.trim();
+          return reject(error);
+        }
+        resolve(stdout.trimEnd());
+      },
+    );
+  });
+}
+
+async function hasCommits(pathname) {
+  try {
+    await git(pathname, ["rev-parse", "--verify", "--quiet", "HEAD"]);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+// `git diff HEAD` needs a commit; a repository without one only has the index.
+async function getDiff(pathname, { unified, color }) {
+  const target = (await hasCommits(pathname)) ? "HEAD" : "--cached";
+  return git(pathname, [
+    "-c",
+    `color.ui=${color ? "always" : "never"}`,
+    "diff",
+    `--unified=${unified}`,
+    target,
+  ]);
+}
+
+async function describePathname(pathname, options) {
+  if (!isGitWorkingTree(pathname)) return { isWorkingTree: false };
+  const result = {
+    isWorkingTree: true,
+    dirtyFiles: await countGitDirtyFiles(pathname),
+    untrackedFiles: await countGitUntrackedFiles(pathname),
+    branchName: await getGitBranchName(pathname),
+  };
+  if (result.dirtyFiles > 0) result.diff = await getDiff(pathname, options);
+  return result;
+}
+
+function paint(color, enabled) {
+  return (value) => (enabled ? color(value) : value);
+}
+
+function printDescriptor(pathname, descriptor, color) {
+  const output = [paint(bold, color)(path.basename(pathname))];
+  if (descriptor.branchName) {
+    output.push(paint(magenta, color)(`[${descriptor.branchName}]`));
+  }
+  if (descriptor.dirtyFiles > 0) {
+    output.push(paint(red, color)(`[dirty ${descriptor.dirtyFiles}]`));
+  }
+  if (descriptor.untrackedFiles > 0) {
+    output.push(paint(cyan, color)(`[untracked ${descriptor.untrackedFiles}]`));
+  }
+  console.log(output.join(" "));
+  if (descriptor.diff) console.log(`${descriptor.diff}\n`);
+}
+
+function parsePositiveInteger(arg, name, minimum) {
+  const value = Number(arg.slice(`--${name}=`.length));
+  if (!Number.isInteger(value) || value < minimum) {
+    throw new Error(`Invalid value for --${name}: ${arg}`);
+  }
+  return value;
+}
+
+function parseColor(arg) {
+  const value = arg.slice("--color=".length);
+  if (!COLOR_MODES.includes(value)) {
+    throw new Error(`Invalid value for --color: ${arg}`);
+  }
+  return value;
+}
+
+function parseArgs(argv) {
+  const options = {
+    unified: DEFAULT_UNIFIED,
+    color: "auto",
+    jobs: DEFAULT_JOBS,
+    workspacePath: null,
+  };
+  for (const arg of argv) {
+    if (arg === "--help" || arg === "-h") {
+      console.log(USAGE);
+      process.exit(0);
+    } else if (arg.startsWith("--unified=")) {
+      options.unified = parsePositiveInteger(arg, "unified", 0);
+    } else if (arg.startsWith("--color=")) {
+      options.color = parseColor(arg);
+    } else if (arg.startsWith("--jobs=")) {
+      options.jobs = parsePositiveInteger(arg, "jobs", 1);
+    } else if (arg.startsWith("-")) {
+      throw new Error(`Unknown option: ${arg}\n${USAGE}`);
+    } else if (options.workspacePath === null) {
+      options.workspacePath = arg;
+    } else {
+      throw new Error(`Unexpected argument: ${arg}\n${USAGE}`);
+    }
+  }
+  return options;
+}
+
+function printSummary({ changed, clean, failures }, color) {
+  const parts = [`${changed} with changes`, `${clean} without changes`];
+  if (failures > 0) parts.push(paint(red, color)(`${failures} failed`));
+  console.log(paint(gray, color)(paint(italic, color)(parts.join(", "))));
+}
+
+async function main() {
+  const options = parseArgs(process.argv.slice(2));
+  const color = shouldColorize(options.color);
+  const pathnames = listWorkspace(options.workspacePath || process.cwd());
+  const summary = { changed: 0, clean: 0, failures: 0 };
+  await mapInOrder(
+    pathnames,
+    options.jobs,
+    (pathname) => describePathname(pathname, { ...options, color }),
+    (pathname, { value, error }) => {
+      if (error) {
+        summary.failures += 1;
+        console.error(`[error] ${path.basename(pathname)}: ${error.message}`);
+        return;
+      }
+      if (!value.isWorkingTree) return;
+      if (value.dirtyFiles === 0 && value.untrackedFiles === 0) {
+        summary.clean += 1;
+        return;
+      }
+      summary.changed += 1;
+      printDescriptor(pathname, value, color);
+    },
+  );
+  printSummary(summary, color);
+  process.exitCode = summary.failures > 0 ? 1 : 0;
+}
+
+// A pager or `head` closing the pipe early is not an error.
+process.stdout.on("error", (error) => {
+  if (error.code === "EPIPE") process.exit(0);
+  throw error;
+});
+
+main().catch((err) => {
+  console.error(err.message);
+  process.exitCode = 1;
+});
