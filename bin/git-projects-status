@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-const path = require("node:path");
 const process = require("node:process");
 const { runCommand } = require("../shared/__shared");
 const { isFile } = require("../shared/__filesystem");
@@ -9,6 +8,10 @@ const {
   COMMON_OPTIONS,
   parseProjectsArgs,
   applyColorMode,
+  gitColorMode,
+  renderWorkingTreeLabels,
+  renderUnpushedLabels,
+  formatUnpushedBranches,
   formatHeader,
   formatError,
   formatSummary,
@@ -24,20 +27,8 @@ const {
   countGitDirtyFiles,
   countGitUntrackedFiles,
   getGitUnpushedState,
-  getAheadBranchesToList,
 } = require("../shared/__git");
-const {
-  dimGray,
-  italic,
-  red,
-  blue,
-  brown,
-  cyan,
-  gray,
-  darkGreen,
-  yellow,
-  brightYellow,
-} = require("../shared/__colors");
+const { brown, darkGreen } = require("../shared/__colors");
 
 const USAGE = `
     Usage: [DEBUG=true] git projects-status [path=./] [--changed] [--color=WHEN] [--jobs=N]
@@ -51,11 +42,8 @@ const USAGE = `
         --changed       hide the repositories that have nothing to report${COMMON_OPTIONS}
 `;
 
-let colorEnabled = true;
-
 async function getShortStatus(pathname) {
-  const mode = colorEnabled ? "always" : "never";
-  const command = `git -c color.status=${mode} status --short`;
+  const command = `git -c color.status=${gitColorMode()} status --short`;
   try {
     return await runCommand(command, { cwd: pathname });
   } catch (error) {
@@ -99,33 +87,9 @@ function hasNothingToReport(descriptor) {
   return dirtyFiles === 0 && untrackedFiles === 0 && !hasUnpushedWork;
 }
 
-function renderUnpushedLabels(unpushed) {
-  const labels = [];
-  const { aheadCommits, aheadBranches, unpushedBranches } = unpushed;
-  if (aheadCommits > 0) {
-    const branches =
-      aheadBranches.length > 1 ? ` in ${aheadBranches.length} branches` : "";
-    labels.push(brightYellow(`[ahead ${aheadCommits}${branches}]`));
-  }
-  if (unpushedBranches.length > 0) {
-    labels.push(yellow(`[never pushed ${unpushedBranches.length}]`));
-  }
-  return labels;
-}
-
 function renderLabels(descriptor) {
-  if (descriptor.isFile) return [blue("[file]")];
-  if (descriptor.isBareRepository) return [dimGray("[bare repo]")];
-  if (!descriptor.isWorkingTree) return [brown("[not repo]")];
-
-  const labels = [];
-  if (descriptor.isWorktree) labels.push(dimGray(italic("[worktree]")));
-  if (descriptor.dirtyFiles > 0) {
-    labels.push(red(`[dirty ${descriptor.dirtyFiles}]`));
-  }
-  if (descriptor.untrackedFiles > 0) {
-    labels.push(cyan(`[untracked ${descriptor.untrackedFiles}]`));
-  }
+  const labels = renderWorkingTreeLabels(descriptor);
+  if (!descriptor.isWorkingTree) return labels;
   if (descriptor.isLocalOnlyRepository) {
     labels.push("[local repo]");
   } else if (descriptor.isDetached) {
@@ -151,15 +115,9 @@ function printDescriptor(pathname, descriptor) {
   );
 
   if (descriptor.unpushed) {
-    const aheadBranches = getAheadBranchesToList(
-      descriptor.unpushed.aheadBranches,
-      descriptor.branchName,
-    );
-    for (const branch of aheadBranches) {
-      console.log(gray(`    ahead: ${branch}`));
-    }
-    for (const branch of descriptor.unpushed.unpushedBranches) {
-      console.log(gray(`    never pushed: ${branch}`));
+    const { unpushed, branchName } = descriptor;
+    for (const line of formatUnpushedBranches(unpushed, branchName)) {
+      console.log(line);
     }
   }
   if (descriptor.shortStatus) {
@@ -184,7 +142,7 @@ function parseArgs(argv) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) return console.log(USAGE);
-  colorEnabled = applyColorMode(options.color);
+  applyColorMode(options.color);
   const pathnames = listWorkspace(options.workspacePath || process.cwd());
   const summary = { changed: 0, clean: 0, failures: 0 };
   await mapInOrder(

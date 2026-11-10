@@ -1,14 +1,21 @@
 const path = require("node:path");
 const process = require("node:process");
 
+const { getAheadBranchesToList } = require("./__git");
 const {
+  blue,
   bold,
+  brightYellow,
+  brown,
+  cyan,
+  dimGray,
   gray,
   green,
   italic,
   magenta,
   red,
   setColorsEnabled,
+  yellow,
 } = require("./__colors");
 
 // The common output and options of the `git projects-*` scripts, so that
@@ -73,15 +80,31 @@ function parseProjectsArgs(argv, { usage, defaults = {}, parseOption }) {
   return options;
 }
 
+let colorsEnabled = true;
+
 // Turns the colors of this process on or off and returns the decision, so it
 // can be passed on to the Git commands (`-c color.ui=always|never`).
 function applyColorMode(mode) {
-  const enabled = shouldColorize(mode, {
+  colorsEnabled = shouldColorize(mode, {
     isTTY: process.stdout.isTTY,
     env: process.env,
   });
-  setColorsEnabled(enabled);
-  return enabled;
+  setColorsEnabled(colorsEnabled);
+  return colorsEnabled;
+}
+
+// The value of `-c color.ui=...` for a Git command, which writes to a pipe and
+// would otherwise drop its colors.
+function gitColorMode() {
+  return colorsEnabled ? "always" : "never";
+}
+
+// The output of a failed command without the `Command failed: ...` line that
+// `runCommand` puts in front of it.
+function formatCommandOutput(error) {
+  return String(error.message)
+    .replace(/^Command failed: .*\n?/, "")
+    .trim();
 }
 
 // `[labels] name [branch] +Nms`: the first line of every repository.
@@ -94,6 +117,53 @@ function formatHeader({ labels = [], pathname, branchName, elapsedTime }) {
 
 function formatError(pathname, error) {
   return `${red("[error]")} ${path.basename(pathname)}: ${error.message}`;
+}
+
+// The labels every repository starts with. What is not a working tree gets
+// one label that says what it is, and nothing else applies to it.
+function renderWorkingTreeLabels(descriptor) {
+  if (descriptor.isFile) return [blue("[file]")];
+  if (descriptor.isBareRepository) return [dimGray("[bare repo]")];
+  if (!descriptor.isWorkingTree) return [brown("[not repo]")];
+  const labels = [];
+  if (descriptor.isWorktree) labels.push(dimGray(italic("[worktree]")));
+  if (descriptor.dirtyFiles > 0) {
+    labels.push(red(`[dirty ${descriptor.dirtyFiles}]`));
+  }
+  if (descriptor.untrackedFiles > 0) {
+    labels.push(cyan(`[untracked ${descriptor.untrackedFiles}]`));
+  }
+  return labels;
+}
+
+// `[ahead N in M branches] [never pushed N]` from `getGitUnpushedState`.
+function renderUnpushedLabels({
+  aheadCommits,
+  aheadBranches,
+  unpushedBranches,
+}) {
+  const labels = [];
+  if (aheadCommits > 0) {
+    const branches =
+      aheadBranches.length > 1 ? ` in ${aheadBranches.length} branches` : "";
+    labels.push(brightYellow(`[ahead ${aheadCommits}${branches}]`));
+  }
+  if (unpushedBranches.length > 0) {
+    labels.push(yellow(`[never pushed ${unpushedBranches.length}]`));
+  }
+  return labels;
+}
+
+// The lines below a repository that name its unpushed branches. The current
+// branch is left out when it is the only one ahead: the header names it.
+function formatUnpushedBranches(unpushed, currentBranch) {
+  const ahead = getAheadBranchesToList(unpushed.aheadBranches, currentBranch);
+  return [
+    ...ahead.map((branch) => gray(`    ahead: ${branch}`)),
+    ...unpushed.unpushedBranches.map((branch) =>
+      gray(`    never pushed: ${branch}`),
+    ),
+  ];
 }
 
 // The last line: the counts that are not empty, then the failures in red.
@@ -164,6 +234,11 @@ module.exports = {
   shouldColorize,
   parseProjectsArgs,
   applyColorMode,
+  gitColorMode,
+  formatCommandOutput,
+  renderWorkingTreeLabels,
+  renderUnpushedLabels,
+  formatUnpushedBranches,
   formatHeader,
   formatError,
   formatSummary,

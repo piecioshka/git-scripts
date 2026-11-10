@@ -7,6 +7,8 @@ const {
   COMMON_OPTIONS,
   parseProjectsArgs,
   applyColorMode,
+  gitColorMode,
+  renderWorkingTreeLabels,
   formatHeader,
   formatError,
   formatSummary,
@@ -22,7 +24,7 @@ const {
   countGitDirtyFiles,
   countGitUntrackedFiles,
 } = require("../shared/__git");
-const { red, cyan, green, gray } = require("../shared/__colors");
+const { red, green, gray } = require("../shared/__colors");
 
 const USAGE = `
     Usage: [DEBUG=true] git projects-diff [path=./] [--stat] [--unified=N] [--color=WHEN] [--jobs=N]
@@ -76,10 +78,10 @@ async function getDiffTarget(pathname) {
   return (await hasCommits(pathname)) ? "HEAD" : "--cached";
 }
 
-async function getDiff(pathname, { unified, color }) {
+async function getDiff(pathname, { unified }) {
   return git(pathname, [
     "-c",
-    `color.ui=${color ? "always" : "never"}`,
+    `color.ui=${gitColorMode()}`,
     "diff",
     `--unified=${unified}`,
     await getDiffTarget(pathname),
@@ -131,13 +133,7 @@ function printFiles(files) {
 }
 
 function renderLabels(descriptor) {
-  const labels = [];
-  if (descriptor.dirtyFiles > 0) {
-    labels.push(red(`[dirty ${descriptor.dirtyFiles}]`));
-  }
-  if (descriptor.untrackedFiles > 0) {
-    labels.push(cyan(`[untracked ${descriptor.untrackedFiles}]`));
-  }
+  const labels = renderWorkingTreeLabels(descriptor);
   if (descriptor.files) {
     labels.push(formatLineLabel(sumLines(descriptor.files)));
   }
@@ -191,14 +187,14 @@ function printSummary({ changed, clean, failures, lines }) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) return console.log(USAGE);
-  const color = applyColorMode(options.color);
+  applyColorMode(options.color);
   const pathnames = listWorkspace(options.workspacePath || process.cwd());
   const summary = { changed: 0, clean: 0, failures: 0 };
   if (options.stat) summary.lines = { files: 0, added: 0, removed: 0 };
   await mapInOrder(
     pathnames,
     options.jobs,
-    (pathname) => describePathname(pathname, { ...options, color }),
+    (pathname) => describePathname(pathname, options),
     (pathname, { value, error }) => {
       if (error) {
         summary.failures += 1;

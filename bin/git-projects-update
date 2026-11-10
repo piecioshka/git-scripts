@@ -8,6 +8,11 @@ const {
   COMMON_OPTIONS,
   parseProjectsArgs,
   applyColorMode,
+  gitColorMode,
+  formatCommandOutput,
+  renderWorkingTreeLabels,
+  renderUnpushedLabels,
+  formatUnpushedBranches,
   formatHeader,
   formatError,
   formatSummary,
@@ -22,22 +27,9 @@ const {
   countGitDirtyFiles,
   countGitUntrackedFiles,
   getGitUnpushedState,
-  getAheadBranchesToList,
   isGitWorktree,
 } = require("../shared/__git");
-const {
-  dimGray,
-  italic,
-  red,
-  green,
-  blue,
-  brown,
-  cyan,
-  gray,
-  darkGreen,
-  yellow,
-  brightYellow,
-} = require("../shared/__colors");
+const { red, green, brown, darkGreen } = require("../shared/__colors");
 
 const USAGE = `
     Usage: [DEBUG=true] git projects-update [path=./] [--verbose] [--color=WHEN] [--jobs=N]
@@ -58,14 +50,12 @@ const UPDATE_STATUS = {
 };
 
 let verboseEnabled = false;
-let colorEnabled = true;
 
 async function updateGitRepository(pathname) {
   // LC_ALL=C: the "Already up to date." check below depends on English output.
   // --ff-only: never start a merge or a rebase, so the repository can never be
   // left in a conflicted state by a batch update.
-  const mode = colorEnabled ? "always" : "never";
-  const command = `LC_ALL=C git -c color.ui=${mode} pull --ff-only`;
+  const command = `LC_ALL=C git -c color.ui=${gitColorMode()} pull --ff-only`;
   try {
     const output = await runCommand(command, { cwd: pathname });
     const status = output.includes("Already up to date.")
@@ -73,9 +63,7 @@ async function updateGitRepository(pathname) {
       : UPDATE_STATUS.UPDATED;
     return { status, output };
   } catch (error) {
-    const output = String(error.message)
-      .replace(/^Command failed: .*\n?/, "")
-      .trim();
+    const output = formatCommandOutput(error);
     return { status: UPDATE_STATUS.FAILED, output };
   }
 }
@@ -125,43 +113,16 @@ async function describePathname(pathname) {
 
 function renderLabels(descriptor) {
   const {
-    isFile,
-    isBareRepository,
     isWorkingTree,
-    isWorktree,
-    isDirtyRepository,
-    dirtyFiles,
-    untrackedFiles,
     isDetached,
     hasUpstream,
     updateStatus,
     isLocalOnlyRepository,
     unpushed,
   } = descriptor;
-  const labels = [];
+  const labels = renderWorkingTreeLabels(descriptor);
+  if (!isWorkingTree) return labels;
 
-  if (isFile) {
-    labels.push(blue("[file]"));
-    return labels;
-  }
-  if (isBareRepository) {
-    labels.push(dimGray("[bare repo]"));
-    return labels;
-  }
-  if (!isWorkingTree) {
-    labels.push(brown("[not repo]"));
-    return labels;
-  }
-
-  if (isWorktree) {
-    labels.push(dimGray(italic("[worktree]")));
-  }
-  if (isDirtyRepository) {
-    labels.push(red(`[dirty ${dirtyFiles}]`));
-  }
-  if (untrackedFiles > 0) {
-    labels.push(cyan(`[untracked ${untrackedFiles}]`));
-  }
   if (isLocalOnlyRepository) {
     labels.push("[local repo]");
   } else if (isDetached) {
@@ -185,15 +146,7 @@ function renderLabels(descriptor) {
   }
 
   if (unpushed) {
-    const { aheadCommits, aheadBranches, unpushedBranches } = unpushed;
-    if (aheadCommits > 0) {
-      const branches =
-        aheadBranches.length > 1 ? ` in ${aheadBranches.length} branches` : "";
-      labels.push(brightYellow(`[ahead ${aheadCommits}${branches}]`));
-    }
-    if (unpushedBranches.length > 0) {
-      labels.push(yellow(`[never pushed ${unpushedBranches.length}]`));
-    }
+    labels.push(...renderUnpushedLabels(unpushed));
   }
 
   return labels;
@@ -218,15 +171,8 @@ function printDescriptor(pathname, descriptor) {
   );
 
   if (unpushed) {
-    const aheadBranches = getAheadBranchesToList(
-      unpushed.aheadBranches,
-      branchName,
-    );
-    for (const branch of aheadBranches) {
-      console.log(gray(`    ahead: ${branch}`));
-    }
-    for (const branch of unpushed.unpushedBranches) {
-      console.log(gray(`    never pushed: ${branch}`));
+    for (const line of formatUnpushedBranches(unpushed, branchName)) {
+      console.log(line);
     }
   }
 
@@ -269,7 +215,7 @@ async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) return console.log(USAGE);
   verboseEnabled = options.verbose;
-  colorEnabled = applyColorMode(options.color);
+  applyColorMode(options.color);
   const pathnames = listWorkspace(options.workspacePath || process.cwd());
   const summary = { updated: 0, upToDate: 0, skipped: 0, failures: 0 };
   await mapInOrder(

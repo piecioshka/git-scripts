@@ -1,4 +1,4 @@
-const { describe, it, afterEach } = require("node:test");
+const { describe, it, afterEach, beforeEach } = require("node:test");
 const assert = require("node:assert/strict");
 
 const { setColorsEnabled } = require("./__colors");
@@ -15,6 +15,12 @@ const {
   sumLines,
   plural,
   formatLineTotals,
+  applyColorMode,
+  gitColorMode,
+  formatCommandOutput,
+  renderWorkingTreeLabels,
+  renderUnpushedLabels,
+  formatUnpushedBranches,
 } = require("./__projects");
 
 const usage = "usage";
@@ -189,5 +195,102 @@ describe("numstat", () => {
       "2 insertions(+)",
       "1 deletion(-)",
     ]);
+  });
+});
+
+describe("renderWorkingTreeLabels", () => {
+  beforeEach(() => setColorsEnabled(false));
+
+  it("gives one label to what is not a working tree", () => {
+    assert.deepEqual(renderWorkingTreeLabels({ isFile: true }), ["[file]"]);
+    assert.deepEqual(renderWorkingTreeLabels({ isBareRepository: true }), [
+      "[bare repo]",
+    ]);
+    assert.deepEqual(renderWorkingTreeLabels({ isWorkingTree: false }), [
+      "[not repo]",
+    ]);
+  });
+
+  it("lists the worktree, dirty and untracked labels of a working tree", () => {
+    const descriptor = {
+      isWorkingTree: true,
+      isWorktree: true,
+      dirtyFiles: 2,
+      untrackedFiles: 1,
+    };
+    assert.deepEqual(renderWorkingTreeLabels(descriptor), [
+      "[worktree]",
+      "[dirty 2]",
+      "[untracked 1]",
+    ]);
+  });
+
+  it("gives no labels to a clean working tree", () => {
+    const descriptor = {
+      isWorkingTree: true,
+      dirtyFiles: 0,
+      untrackedFiles: 0,
+    };
+    assert.deepEqual(renderWorkingTreeLabels(descriptor), []);
+  });
+});
+
+describe("renderUnpushedLabels", () => {
+  beforeEach(() => setColorsEnabled(false));
+
+  it("counts the branches only when more than one is ahead", () => {
+    const one = {
+      aheadCommits: 3,
+      aheadBranches: ["main"],
+      unpushedBranches: [],
+    };
+    assert.deepEqual(renderUnpushedLabels(one), ["[ahead 3]"]);
+    const two = { ...one, aheadBranches: ["main", "dev"] };
+    assert.deepEqual(renderUnpushedLabels(two), ["[ahead 3 in 2 branches]"]);
+  });
+
+  it("adds the branches that were never pushed", () => {
+    const unpushed = {
+      aheadCommits: 0,
+      aheadBranches: [],
+      unpushedBranches: ["topic"],
+    };
+    assert.deepEqual(renderUnpushedLabels(unpushed), ["[never pushed 1]"]);
+  });
+});
+
+describe("formatUnpushedBranches", () => {
+  beforeEach(() => setColorsEnabled(false));
+
+  it("leaves out the current branch when it is the only one ahead", () => {
+    const unpushed = { aheadBranches: ["main"], unpushedBranches: ["topic"] };
+    assert.deepEqual(formatUnpushedBranches(unpushed, "main"), [
+      "    never pushed: topic",
+    ]);
+  });
+
+  it("lists every ahead branch when more than one is ahead", () => {
+    const unpushed = { aheadBranches: ["main", "dev"], unpushedBranches: [] };
+    assert.deepEqual(formatUnpushedBranches(unpushed, "main"), [
+      "    ahead: main",
+      "    ahead: dev",
+    ]);
+  });
+});
+
+describe("formatCommandOutput", () => {
+  it("drops the `Command failed` line", () => {
+    const error = new Error("Command failed: git push\nrejected\n");
+    assert.equal(formatCommandOutput(error), "rejected");
+  });
+});
+
+describe("gitColorMode", () => {
+  it("follows applyColorMode", () => {
+    applyColorMode("never");
+    assert.equal(gitColorMode(), "never");
+    applyColorMode("always");
+    assert.equal(gitColorMode(), "always");
+    setColorsEnabled(false);
   });
 });
