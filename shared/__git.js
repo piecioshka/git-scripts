@@ -140,10 +140,13 @@ function getAheadBranchesToList(aheadBranches, currentBranch) {
 
 // The local tags that origin does not have yet. `--dry-run` asks git what a
 // real `push --tags` would do, so the answer covers exactly the tags that
-// would travel, without creating anything on the remote.
+// would travel, without creating anything on the remote. `--no-verify`, because
+// git runs the pre-push hook even for a dry run, and a hook running the whole
+// CI would make this question take minutes.
 async function countGitUnpushedTags(pathname) {
   if (!isGitWorkingTree(pathname)) return 0;
-  const command = "LC_ALL=C git push --tags --dry-run --porcelain origin";
+  const command =
+    "LC_ALL=C git push --tags --dry-run --no-verify --porcelain origin";
   let output;
   try {
     output = await runCommand(command, { cwd: pathname });

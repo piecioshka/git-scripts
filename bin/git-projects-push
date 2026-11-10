@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+const path = require("node:path");
 const process = require("node:process");
 const { runCommand } = require("../shared/__shared");
 const { isFile } = require("../shared/__filesystem");
@@ -11,6 +12,7 @@ const {
   formatHeader,
   formatError,
   formatSummary,
+  createProgressLine,
   quitOnClosedPipe,
 } = require("../shared/__projects");
 const {
@@ -58,6 +60,28 @@ const PUSH_STATUS = {
 
 let verboseEnabled = false;
 let colorEnabled = true;
+
+// A push runs the pre-push hook, which can take minutes, and the results are
+// printed in the order of the workspace, so without this line nothing would
+// show up until the slowest repository at the top was done.
+const progress = createProgressLine();
+const pushing = new Set();
+
+function showPushing() {
+  const names = [...pushing].join(", ");
+  progress.update(names ? `Pushing ${names}…` : "");
+}
+
+async function trackPushing(pathname, run) {
+  pushing.add(path.basename(pathname));
+  showPushing();
+  try {
+    return await run();
+  } finally {
+    pushing.delete(path.basename(pathname));
+    showPushing();
+  }
+}
 
 // `git push` writes its whole report to stderr, so every command below
 // redirects it into stdout: without that, a successful push would have no
@@ -143,11 +167,13 @@ async function describePathname(pathname) {
       result.unpushed.unpushedBranches.length > 0;
     const hasTags = result.unpushedTags > 0;
     if (hasBranches || hasTags) {
-      const { status, output } = await pushGitRepository(pathname, {
-        hasBranches,
-        hasTags,
-        newBranches: result.unpushed.unpushedBranches,
-      });
+      const { status, output } = await trackPushing(pathname, () =>
+        pushGitRepository(pathname, {
+          hasBranches,
+          hasTags,
+          newBranches: result.unpushed.unpushedBranches,
+        }),
+      );
       result.pushStatus = status;
       result.pushOutput = output;
     } else {
@@ -313,10 +339,10 @@ async function main() {
     (pathname, { value, error }) => {
       if (error) {
         summary.failures += 1;
-        console.error(formatError(pathname, error));
+        progress.around(() => console.error(formatError(pathname, error)));
         return;
       }
-      printDescriptor(pathname, value);
+      progress.around(() => printDescriptor(pathname, value));
       countResult(summary, value);
     },
   );
