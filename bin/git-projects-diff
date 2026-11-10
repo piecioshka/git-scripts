@@ -14,13 +14,14 @@ const {
   bold,
   red,
   cyan,
+  green,
   magenta,
   gray,
   italic,
 } = require("../shared/__colors");
 
 const USAGE = `
-    Usage: [DEBUG=true] git projects-diff [path=./] [--unified=N] [--color=WHEN] [--jobs=N]
+    Usage: [DEBUG=true] git projects-diff [path=./] [--stat] [--unified=N] [--color=WHEN] [--jobs=N]
 
     Shows the changes of tracked files, staged and unstaged (git diff HEAD), of
     every project in the workspace. Repositories without changes are skipped;
@@ -28,6 +29,9 @@ const USAGE = `
 
     Options:
 
+        --stat          lists only the changed files with the number of added
+                        and removed lines instead of the diff, and adds the
+                        totals to the summary
         --unified=N     lines of context around every change (default: 1)
         --color=WHEN    colors of the diff: auto, always or never (default:
                         auto - only when printing to a terminal, unless
@@ -77,15 +81,39 @@ async function hasCommits(pathname) {
 }
 
 // `git diff HEAD` needs a commit; a repository without one only has the index.
+async function getDiffTarget(pathname) {
+  return (await hasCommits(pathname)) ? "HEAD" : "--cached";
+}
+
 async function getDiff(pathname, { unified, color }) {
-  const target = (await hasCommits(pathname)) ? "HEAD" : "--cached";
   return git(pathname, [
     "-c",
     `color.ui=${color ? "always" : "never"}`,
     "diff",
     `--unified=${unified}`,
-    target,
+    await getDiffTarget(pathname),
   ]);
+}
+
+// `git diff --numstat` prints `-` instead of numbers for binary files.
+function parseNumstatLine(line) {
+  const [added, removed, ...rest] = line.split("\t");
+  const binary = added === "-" && removed === "-";
+  return {
+    file: rest.join("\t"),
+    binary,
+    added: binary ? 0 : Number(added),
+    removed: binary ? 0 : Number(removed),
+  };
+}
+
+async function getChangedFiles(pathname) {
+  const output = await git(pathname, [
+    "diff",
+    "--numstat",
+    await getDiffTarget(pathname),
+  ]);
+  return output ? output.split("\n").map(parseNumstatLine) : [];
 }
 
 async function describePathname(pathname, options) {
@@ -96,12 +124,46 @@ async function describePathname(pathname, options) {
     untrackedFiles: await countGitUntrackedFiles(pathname),
     branchName: await getGitBranchName(pathname),
   };
-  if (result.dirtyFiles > 0) result.diff = await getDiff(pathname, options);
+  if (result.dirtyFiles === 0) return result;
+  if (options.stat) {
+    result.files = await getChangedFiles(pathname);
+  } else {
+    result.diff = await getDiff(pathname, options);
+  }
   return result;
 }
 
 function paint(color, enabled) {
   return (value) => (enabled ? color(value) : value);
+}
+
+function sumLines(files) {
+  return files.reduce(
+    (sum, { added, removed }) => ({
+      added: sum.added + added,
+      removed: sum.removed + removed,
+    }),
+    { added: 0, removed: 0 },
+  );
+}
+
+function formatFile({ file, binary, added, removed }, width, color) {
+  if (binary) {
+    return `    ${paint(gray, color)("binary".padEnd(width * 2 + 3))}  ${file}`;
+  }
+  const plus = paint(green, color)(`+${added}`.padStart(width + 1));
+  const minus = paint(red, color)(`-${removed}`.padStart(width + 1));
+  return `    ${plus} ${minus}  ${file}`;
+}
+
+function printFiles(files, color) {
+  const width = Math.max(
+    ...files.map(({ added, removed }) =>
+      Math.max(String(added).length, String(removed).length),
+    ),
+  );
+  for (const file of files) console.log(formatFile(file, width, color));
+  console.log("");
 }
 
 function printDescriptor(pathname, descriptor, color) {
@@ -115,8 +177,16 @@ function printDescriptor(pathname, descriptor, color) {
   if (descriptor.untrackedFiles > 0) {
     output.push(paint(cyan, color)(`[untracked ${descriptor.untrackedFiles}]`));
   }
+  if (descriptor.files) {
+    const { added, removed } = sumLines(descriptor.files);
+    output.push(
+      paint(green, color)(`+${added}`),
+      paint(red, color)(`-${removed}`),
+    );
+  }
   console.log(output.join(" "));
   if (descriptor.diff) console.log(`${descriptor.diff}\n`);
+  if (descriptor.files?.length > 0) printFiles(descriptor.files, color);
 }
 
 function parsePositiveInteger(arg, name, minimum) {
@@ -138,6 +208,7 @@ function parseColor(arg) {
 function parseArgs(argv) {
   const options = {
     unified: DEFAULT_UNIFIED,
+    stat: false,
     color: "auto",
     jobs: DEFAULT_JOBS,
     workspacePath: null,
@@ -146,6 +217,8 @@ function parseArgs(argv) {
     if (arg === "--help" || arg === "-h") {
       console.log(USAGE);
       process.exit(0);
+    } else if (arg === "--stat") {
+      options.stat = true;
     } else if (arg.startsWith("--unified=")) {
       options.unified = parsePositiveInteger(arg, "unified", 0);
     } else if (arg.startsWith("--color=")) {
@@ -163,8 +236,19 @@ function parseArgs(argv) {
   return options;
 }
 
-function printSummary({ changed, clean, failures }, color) {
+function plural(count, noun) {
+  return `${count} ${noun}${count === 1 ? "" : "s"}`;
+}
+
+function printSummary({ changed, clean, failures, lines }, color) {
   const parts = [`${changed} with changes`, `${clean} without changes`];
+  if (lines) {
+    parts.push(
+      `${plural(lines.files, "file")} changed`,
+      `${plural(lines.added, "insertion")}(+)`,
+      `${plural(lines.removed, "deletion")}(-)`,
+    );
+  }
   if (failures > 0) parts.push(paint(red, color)(`${failures} failed`));
   console.log(paint(gray, color)(paint(italic, color)(parts.join(", "))));
 }
@@ -174,6 +258,7 @@ async function main() {
   const color = shouldColorize(options.color);
   const pathnames = listWorkspace(options.workspacePath || process.cwd());
   const summary = { changed: 0, clean: 0, failures: 0 };
+  if (options.stat) summary.lines = { files: 0, added: 0, removed: 0 };
   await mapInOrder(
     pathnames,
     options.jobs,
@@ -190,6 +275,12 @@ async function main() {
         return;
       }
       summary.changed += 1;
+      if (value.files) {
+        const { added, removed } = sumLines(value.files);
+        summary.lines.files += value.files.length;
+        summary.lines.added += added;
+        summary.lines.removed += removed;
+      }
       printDescriptor(pathname, value, color);
     },
   );

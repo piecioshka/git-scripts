@@ -2,6 +2,7 @@
 
 All notable changes to this project, newest first.
 
+- 2026-11-10 - Added `--stat` to `git projects-diff`: instead of the diff it lists the changed files with the number of added and removed lines (`git diff --numstat`), shows the totals next to every repository and adds the number of changed files, insertions and deletions in the whole workspace to the summary.
 - 2026-11-10 - Added `git projects-status` and `git projects-diff`, which report the state and the diff of all projects in the workspace, `N` repositories at a time. Both skip what has nothing to show (`--changed` in `git projects-status`, always in `git projects-diff`) and quit quietly when a pager or `head` closes the pipe. `listWorkspace` and `mapInOrder` (parallel work, output in order) were added to the shared helpers.
 - 2026-11-08 - Added `[untracked N]` to `git projects-push`, and a warning to `git zip` when untracked files were left out of the package; until now `git zip` could report a clean build of a package that was missing new files.
 - 2026-11-08 - Added `[untracked N]` to `git projects-update`: counts the untracked files that are not ignored, in local-only repositories too. Untracked files still do not make a repository dirty or stop the update. `countGitUntrackedFiles` was added to the shared Git helpers.

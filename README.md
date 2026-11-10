@@ -48,9 +48,10 @@ set -gx PATH $HOME/projects/git-scripts/bin/ $PATH
   - Pushes only the repositories that have work the origin is missing: commits ahead of the upstream, branches without an upstream (pushed with `-u`, so they are not reported again) and local tags. Branches and tags are pushed independently, so a branch the origin has moved past does not hold back the tags.
   - Skips files, bare repositories, directories that are not repositories and local-only repositories. A dirty or detached repository is pushed as usual, because `push` only reads the refs and never touches the working tree. `[dirty N]` and `[untracked N]` mark the files that a push does not send.
   - Exits with code `1` when any push fails; the output of the failed push is printed below the repository, and `--verbose` prints it for the successful ones too.
-- `[DEBUG=true] git projects-diff [path=./] [--unified=N] [--color=auto|always|never] [--jobs=N]`
+- `[DEBUG=true] git projects-diff [path=./] [--stat] [--unified=N] [--color=auto|always|never] [--jobs=N]`
   - Displays the changes of tracked files, staged and unstaged (`git diff HEAD`, 1 line of context by default), of all projects in the workspace, `N` repositories at a time (default: 4).
   - Skips repositories without changes and ends with the number of repositories with and without changes. Untracked files are only counted as `[untracked N]`, because Git has no diff for them.
+  - `--stat` lists only the changed files with the number of added and removed lines (`binary` for binary files) instead of the diff, shows the totals next to every repository and ends with the number of changed files, insertions and deletions in the whole workspace.
 - `[DEBUG=true] git projects-status [path=./] [--changed] [--jobs=N]`
   - Displays the state of all projects in the workspace, `N` repositories at a time (default: 4): `[dirty N]`, `[untracked N]`, `[ahead N]`, `[never pushed N]`, `[detached]`, `[no upstream]`, `[local repo]` or `[clean]`, with the changed files (`git status --short`) and the unpushed branches listed below the repository.
   - `--changed` hides the repositories that have nothing to report. Nothing is fetched, so `[ahead N]` comes from the refs of the last fetch.
