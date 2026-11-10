@@ -14,14 +14,14 @@ error: failed to push some refs to 'github.com:piecioshka/eslint-config-pieciosh
 [not repo] innerhtml-vs-innertext-vs-textcontent
 [bare repo] offline-strategy.git
 [file] README.md
-4 pushed, 1 failed
+4 pushed, 2 with nothing to push, 1 skipped, 1 failed
 
 > git projects-push --verbose
 [tags 1] [pushed] is-responding [main]
 To github.com:piecioshka/is-responding.git
  * [new tag]         v2.1.0 -> v2.1.0
 [nothing to push] battery-life-extender [main]
-1 pushed
+1 pushed, 1 with nothing to push
 
 > DEBUG=true git projects-push --jobs=1
 ==> git config --get remote.origin.url
@@ -33,3 +33,4 @@ To github.com:piecioshka/is-responding.git
 ==> git -c color.ui=always push --all -v 2>&1
 ==> git -c color.ui=always push --tags -v 2>&1
 [ahead 2] [pushed] ava-live [main]
+1 pushed, 0 with nothing to push

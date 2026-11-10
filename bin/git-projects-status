@@ -6,6 +6,15 @@ const { runCommand } = require("../shared/__shared");
 const { isFile } = require("../shared/__filesystem");
 const { listWorkspace, mapInOrder } = require("../shared/__workspace");
 const {
+  COMMON_OPTIONS,
+  parseProjectsArgs,
+  applyColorMode,
+  formatHeader,
+  formatError,
+  formatSummary,
+  quitOnClosedPipe,
+} = require("../shared/__projects");
+const {
   getGitBranchName,
   getGitUpstream,
   isGitBareRepository,
@@ -22,7 +31,6 @@ const {
   italic,
   red,
   blue,
-  magenta,
   brown,
   cyan,
   gray,
@@ -32,7 +40,7 @@ const {
 } = require("../shared/__colors");
 
 const USAGE = `
-    Usage: [DEBUG=true] git projects-status [path=./] [--changed] [--jobs=N]
+    Usage: [DEBUG=true] git projects-status [path=./] [--changed] [--color=WHEN] [--jobs=N]
 
     Shows the state of every project in the workspace: modified and untracked
     files, commits that are not pushed and branches that were never pushed.
@@ -40,14 +48,14 @@ const USAGE = `
 
     Options:
 
-        --changed   hide the repositories that have nothing to report
-        --jobs=N    number of repositories inspected in parallel (default: 4)
+        --changed       hide the repositories that have nothing to report${COMMON_OPTIONS}
 `;
 
-const DEFAULT_JOBS = 4;
+let colorEnabled = true;
 
 async function getShortStatus(pathname) {
-  const command = "git -c color.status=always status --short";
+  const mode = colorEnabled ? "always" : "never";
+  const command = `git -c color.status=${mode} status --short`;
   try {
     return await runCommand(command, { cwd: pathname });
   } catch (error) {
@@ -133,13 +141,14 @@ function renderLabels(descriptor) {
 }
 
 function printDescriptor(pathname, descriptor) {
-  const output = renderLabels(descriptor);
-  output.push(path.basename(pathname));
-  if (descriptor.isWorkingTree && descriptor.branchName) {
-    output.push(magenta(`[${descriptor.branchName}]`));
-  }
-  output.push(gray(italic(`+${descriptor.elapsedTime}ms`)));
-  console.log(output.join(" "));
+  console.log(
+    formatHeader({
+      labels: renderLabels(descriptor),
+      pathname,
+      branchName: descriptor.isWorkingTree && descriptor.branchName,
+      elapsedTime: descriptor.elapsedTime,
+    }),
+  );
 
   if (descriptor.unpushed) {
     const aheadBranches = getAheadBranchesToList(
@@ -160,63 +169,50 @@ function printDescriptor(pathname, descriptor) {
   }
 }
 
-function parseJobs(arg) {
-  const jobs = Number(arg.slice("--jobs=".length));
-  if (!Number.isInteger(jobs) || jobs < 1) {
-    throw new Error(`Invalid value for --jobs: ${arg}`);
-  }
-  return jobs;
-}
-
 function parseArgs(argv) {
-  const options = { changed: false, jobs: DEFAULT_JOBS, workspacePath: null };
-  for (const arg of argv) {
-    if (arg === "--help" || arg === "-h") {
-      console.log(USAGE);
-      process.exit(0);
-    } else if (arg === "--changed") {
+  return parseProjectsArgs(argv, {
+    usage: USAGE,
+    defaults: { changed: false },
+    parseOption(arg, options) {
+      if (arg !== "--changed") return false;
       options.changed = true;
-    } else if (arg.startsWith("--jobs=")) {
-      options.jobs = parseJobs(arg);
-    } else if (arg.startsWith("-")) {
-      throw new Error(`Unknown option: ${arg}\n${USAGE}`);
-    } else if (options.workspacePath === null) {
-      options.workspacePath = arg;
-    } else {
-      throw new Error(`Unexpected argument: ${arg}\n${USAGE}`);
-    }
-  }
-  return options;
+      return true;
+    },
+  });
 }
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
+  if (options.help) return console.log(USAGE);
+  colorEnabled = applyColorMode(options.color);
   const pathnames = listWorkspace(options.workspacePath || process.cwd());
-  let failures = 0;
+  const summary = { changed: 0, clean: 0, failures: 0 };
   await mapInOrder(
     pathnames,
     options.jobs,
     describePathname,
     (pathname, { value, error }) => {
       if (error) {
-        failures += 1;
-        console.error(
-          `${red("[error]")} ${path.basename(pathname)}: ${error.message}`,
-        );
+        summary.failures += 1;
+        console.error(formatError(pathname, error));
         return;
       }
-      if (options.changed && hasNothingToReport(value)) return;
+      const isClean = hasNothingToReport(value);
+      if (value.isWorkingTree) summary[isClean ? "clean" : "changed"] += 1;
+      if (options.changed && isClean) return;
       printDescriptor(pathname, value);
     },
   );
-  process.exitCode = failures > 0 ? 1 : 0;
+  console.log(
+    formatSummary(
+      [`${summary.changed} with changes`, `${summary.clean} clean`],
+      summary.failures,
+    ),
+  );
+  process.exitCode = summary.failures > 0 ? 1 : 0;
 }
 
-// A pager or `head` closing the pipe early is not an error.
-process.stdout.on("error", (error) => {
-  if (error.code === "EPIPE") process.exit(0);
-  throw error;
-});
+quitOnClosedPipe();
 
 main().catch((err) => {
   console.error(err.message);

@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 
-const path = require("node:path");
 const process = require("node:process");
 const { runCommand } = require("../shared/__shared");
+const { isFile } = require("../shared/__filesystem");
+const { listWorkspace, mapInOrder } = require("../shared/__workspace");
 const {
-  isFile,
-  isHidden,
-  getFilesAndDirectories,
-} = require("../shared/__filesystem");
+  COMMON_OPTIONS,
+  parseProjectsArgs,
+  applyColorMode,
+  formatHeader,
+  formatError,
+  formatSummary,
+  quitOnClosedPipe,
+} = require("../shared/__projects");
 const {
   getGitBranchName,
   getGitUpstream,
@@ -26,7 +31,6 @@ const {
   red,
   green,
   blue,
-  magenta,
   brown,
   cyan,
   gray,
@@ -36,15 +40,16 @@ const {
 } = require("../shared/__colors");
 
 const USAGE = `
-    Usage: [DEBUG=true] git projects-update [path=./] [--verbose] [--jobs=N]
+    Usage: [DEBUG=true] git projects-update [path=./] [--verbose] [--color=WHEN] [--jobs=N]
+
+    Updates every project in the workspace with \`git pull --ff-only\`. Dirty,
+    detached and local-only repositories and the ones without an upstream are
+    skipped; the work that origin does not have yet is reported for all of them.
 
     Options:
 
-        --verbose   print the output of every successful update
-        --jobs=N    number of repositories updated in parallel (default: 4)
+        --verbose       print the output of every successful update${COMMON_OPTIONS}
 `;
-
-const DEFAULT_JOBS = 4;
 
 const UPDATE_STATUS = {
   UP_TO_DATE: "up-to-date",
@@ -53,12 +58,14 @@ const UPDATE_STATUS = {
 };
 
 let verboseEnabled = false;
+let colorEnabled = true;
 
 async function updateGitRepository(pathname) {
   // LC_ALL=C: the "Already up to date." check below depends on English output.
   // --ff-only: never start a merge or a rebase, so the repository can never be
   // left in a conflicted state by a batch update.
-  const command = "LC_ALL=C git -c color.ui=always pull --ff-only";
+  const mode = colorEnabled ? "always" : "never";
+  const command = `LC_ALL=C git -c color.ui=${mode} pull --ff-only`;
   try {
     const output = await runCommand(command, { cwd: pathname });
     const status = output.includes("Already up to date.")
@@ -201,17 +208,14 @@ function printDescriptor(pathname, descriptor) {
     updateOutput,
     unpushed,
   } = descriptor;
-  const output = renderLabels(descriptor);
-
-  output.push(path.basename(pathname));
-
-  if (isWorkingTree && branchName) {
-    output.push(magenta(`[${branchName}]`));
-  }
-
-  output.push(gray(italic(`+${elapsedTime}ms`)));
-
-  console.log(output.join(" "));
+  console.log(
+    formatHeader({
+      labels: renderLabels(descriptor),
+      pathname,
+      branchName: isWorkingTree && branchName,
+      elapsedTime,
+    }),
+  );
 
   if (unpushed) {
     const aheadBranches = getAheadBranchesToList(
@@ -233,87 +237,69 @@ function printDescriptor(pathname, descriptor) {
   }
 }
 
-async function processWorkspace(files, workspacePath, jobs) {
-  const tasks = files.map((file) => {
-    const pathname = path.resolve(workspacePath, file);
-    return { pathname, task: () => describePathname(pathname) };
-  });
-  const results = tasks.map(() => null);
-  let next = 0;
-
-  async function worker() {
-    while (next < tasks.length) {
-      const index = next++;
-      results[index] = tasks[index]
-        .task()
-        .then((descriptor) => ({ descriptor }))
-        .catch((error) => ({ error }));
-      await results[index];
-    }
+function countResult(summary, descriptor) {
+  switch (descriptor.updateStatus) {
+    case UPDATE_STATUS.UPDATED:
+      summary.updated += 1;
+      break;
+    case UPDATE_STATUS.UP_TO_DATE:
+      summary.upToDate += 1;
+      break;
+    case UPDATE_STATUS.FAILED:
+      summary.failures += 1;
+      break;
+    default:
+      if (descriptor.isWorkingTree) summary.skipped += 1;
   }
-
-  const workers = Array.from({ length: Math.min(jobs, tasks.length) }, () =>
-    worker(),
-  );
-
-  let failures = 0;
-  for (let index = 0; index < tasks.length; index++) {
-    while (results[index] === null) {
-      await Promise.race(workers.concat(results.filter(Boolean)));
-    }
-    const { pathname } = tasks[index];
-    const { descriptor, error } = await results[index];
-    if (error) {
-      failures += 1;
-      console.error(
-        `${red("[error]")} ${path.basename(pathname)}: ${error.message}`,
-      );
-      continue;
-    }
-    printDescriptor(pathname, descriptor);
-    if (descriptor.updateStatus === UPDATE_STATUS.FAILED) {
-      failures += 1;
-    }
-  }
-  await Promise.all(workers);
-  return failures;
 }
 
 function parseArgs(argv) {
-  const options = { verbose: false, jobs: DEFAULT_JOBS, workspacePath: null };
-  for (const arg of argv) {
-    if (arg === "--help" || arg === "-h") {
-      console.log(USAGE);
-      process.exit(0);
-    } else if (arg === "--verbose") {
+  return parseProjectsArgs(argv, {
+    usage: USAGE,
+    defaults: { verbose: false },
+    parseOption(arg, options) {
+      if (arg !== "--verbose") return false;
       options.verbose = true;
-    } else if (arg.startsWith("--jobs=")) {
-      const jobs = Number(arg.slice("--jobs=".length));
-      if (!Number.isInteger(jobs) || jobs < 1) {
-        throw new Error(`Invalid value for --jobs: ${arg}`);
-      }
-      options.jobs = jobs;
-    } else if (arg.startsWith("-")) {
-      throw new Error(`Unknown option: ${arg}\n${USAGE}`);
-    } else if (options.workspacePath === null) {
-      options.workspacePath = arg;
-    } else {
-      throw new Error(`Unexpected argument: ${arg}\n${USAGE}`);
-    }
-  }
-  return options;
+      return true;
+    },
+  });
 }
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
+  if (options.help) return console.log(USAGE);
   verboseEnabled = options.verbose;
-  const workspacePath = options.workspacePath || process.cwd();
-  const files = getFilesAndDirectories(workspacePath)
-    .filter((file) => !isHidden(file))
-    .sort();
-  const failures = await processWorkspace(files, workspacePath, options.jobs);
-  process.exitCode = failures > 0 ? 1 : 0;
+  colorEnabled = applyColorMode(options.color);
+  const pathnames = listWorkspace(options.workspacePath || process.cwd());
+  const summary = { updated: 0, upToDate: 0, skipped: 0, failures: 0 };
+  await mapInOrder(
+    pathnames,
+    options.jobs,
+    describePathname,
+    (pathname, { value, error }) => {
+      if (error) {
+        summary.failures += 1;
+        console.error(formatError(pathname, error));
+        return;
+      }
+      printDescriptor(pathname, value);
+      countResult(summary, value);
+    },
+  );
+  console.log(
+    formatSummary(
+      [
+        `${summary.updated} updated`,
+        `${summary.upToDate} up-to-date`,
+        summary.skipped > 0 && `${summary.skipped} skipped`,
+      ],
+      summary.failures,
+    ),
+  );
+  process.exitCode = summary.failures > 0 ? 1 : 0;
 }
+
+quitOnClosedPipe();
 
 main().catch((err) => {
   console.error(err.message);

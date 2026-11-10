@@ -1,24 +1,24 @@
 #!/usr/bin/env node
 
-const path = require("node:path");
 const process = require("node:process");
 const { execFile } = require("node:child_process");
 const { listWorkspace, mapInOrder } = require("../shared/__workspace");
+const {
+  COMMON_OPTIONS,
+  parseProjectsArgs,
+  applyColorMode,
+  formatHeader,
+  formatError,
+  formatSummary,
+  quitOnClosedPipe,
+} = require("../shared/__projects");
 const {
   getGitBranchName,
   isGitWorkingTree,
   countGitDirtyFiles,
   countGitUntrackedFiles,
 } = require("../shared/__git");
-const {
-  bold,
-  red,
-  cyan,
-  green,
-  magenta,
-  gray,
-  italic,
-} = require("../shared/__colors");
+const { red, cyan, green, gray } = require("../shared/__colors");
 
 const USAGE = `
     Usage: [DEBUG=true] git projects-diff [path=./] [--stat] [--unified=N] [--color=WHEN] [--jobs=N]
@@ -32,23 +32,10 @@ const USAGE = `
         --stat          lists only the changed files with the number of added
                         and removed lines instead of the diff, and adds the
                         totals to the summary
-        --unified=N     lines of context around every change (default: 1)
-        --color=WHEN    colors of the diff: auto, always or never (default:
-                        auto - only when printing to a terminal, unless
-                        NO_COLOR is set)
-        --jobs=N        number of repositories read in parallel (default: 4)
+        --unified=N     lines of context around every change (default: 1)${COMMON_OPTIONS}
 `;
 
-const DEFAULT_JOBS = 4;
 const DEFAULT_UNIFIED = 1;
-const COLOR_MODES = ["auto", "always", "never"];
-
-function shouldColorize(mode) {
-  if (mode === "auto") {
-    return Boolean(process.stdout.isTTY) && !process.env.NO_COLOR;
-  }
-  return mode === "always";
-}
 
 // Lockfiles and generated files make diffs far larger than the 1 MB that
 // `exec` buffers by default.
@@ -117,6 +104,7 @@ async function getChangedFiles(pathname) {
 }
 
 async function describePathname(pathname, options) {
+  const start = Date.now();
   if (!isGitWorkingTree(pathname)) return { isWorkingTree: false };
   const result = {
     isWorkingTree: true,
@@ -124,17 +112,13 @@ async function describePathname(pathname, options) {
     untrackedFiles: await countGitUntrackedFiles(pathname),
     branchName: await getGitBranchName(pathname),
   };
-  if (result.dirtyFiles === 0) return result;
-  if (options.stat) {
+  if (options.stat && result.dirtyFiles > 0) {
     result.files = await getChangedFiles(pathname);
-  } else {
+  } else if (result.dirtyFiles > 0) {
     result.diff = await getDiff(pathname, options);
   }
+  result.elapsedTime = Date.now() - start;
   return result;
-}
-
-function paint(color, enabled) {
-  return (value) => (enabled ? color(value) : value);
 }
 
 function sumLines(files) {
@@ -147,101 +131,82 @@ function sumLines(files) {
   );
 }
 
-function formatFile({ file, binary, added, removed }, width, color) {
-  if (binary) {
-    return `    ${paint(gray, color)("binary".padEnd(width * 2 + 3))}  ${file}`;
-  }
-  const plus = paint(green, color)(`+${added}`.padStart(width + 1));
-  const minus = paint(red, color)(`-${removed}`.padStart(width + 1));
+function formatFile({ file, binary, added, removed }, width) {
+  if (binary) return `    ${gray("binary".padEnd(width * 2 + 3))}  ${file}`;
+  const plus = green(`+${added}`.padStart(width + 1));
+  const minus = red(`-${removed}`.padStart(width + 1));
   return `    ${plus} ${minus}  ${file}`;
 }
 
-function printFiles(files, color) {
+function printFiles(files) {
   const width = Math.max(
     ...files.map(({ added, removed }) =>
       Math.max(String(added).length, String(removed).length),
     ),
   );
-  for (const file of files) console.log(formatFile(file, width, color));
+  for (const file of files) console.log(formatFile(file, width));
   console.log("");
 }
 
-function printDescriptor(pathname, descriptor, color) {
-  const output = [paint(bold, color)(path.basename(pathname))];
-  if (descriptor.branchName) {
-    output.push(paint(magenta, color)(`[${descriptor.branchName}]`));
-  }
+function renderLabels(descriptor) {
+  const labels = [];
   if (descriptor.dirtyFiles > 0) {
-    output.push(paint(red, color)(`[dirty ${descriptor.dirtyFiles}]`));
+    labels.push(red(`[dirty ${descriptor.dirtyFiles}]`));
   }
   if (descriptor.untrackedFiles > 0) {
-    output.push(paint(cyan, color)(`[untracked ${descriptor.untrackedFiles}]`));
+    labels.push(cyan(`[untracked ${descriptor.untrackedFiles}]`));
   }
   if (descriptor.files) {
     const { added, removed } = sumLines(descriptor.files);
-    output.push(
-      paint(green, color)(`+${added}`),
-      paint(red, color)(`-${removed}`),
-    );
+    labels.push(`[${green(`+${added}`)} ${red(`-${removed}`)}]`);
   }
-  console.log(output.join(" "));
+  return labels;
+}
+
+function printDescriptor(pathname, descriptor) {
+  console.log(
+    formatHeader({
+      labels: renderLabels(descriptor),
+      pathname,
+      branchName: descriptor.branchName,
+      elapsedTime: descriptor.elapsedTime,
+    }),
+  );
   if (descriptor.diff) console.log(`${descriptor.diff}\n`);
-  if (descriptor.files?.length > 0) printFiles(descriptor.files, color);
+  if (descriptor.files?.length > 0) printFiles(descriptor.files);
 }
 
-function parsePositiveInteger(arg, name, minimum) {
-  const value = Number(arg.slice(`--${name}=`.length));
-  if (!Number.isInteger(value) || value < minimum) {
-    throw new Error(`Invalid value for --${name}: ${arg}`);
-  }
-  return value;
-}
-
-function parseColor(arg) {
-  const value = arg.slice("--color=".length);
-  if (!COLOR_MODES.includes(value)) {
-    throw new Error(`Invalid value for --color: ${arg}`);
+function parseUnified(arg) {
+  const value = Number(arg.slice("--unified=".length));
+  if (!Number.isInteger(value) || value < 0) {
+    throw new Error(`Invalid value for --unified: ${arg}`);
   }
   return value;
 }
 
 function parseArgs(argv) {
-  const options = {
-    unified: DEFAULT_UNIFIED,
-    stat: false,
-    color: "auto",
-    jobs: DEFAULT_JOBS,
-    workspacePath: null,
-  };
-  for (const arg of argv) {
-    if (arg === "--help" || arg === "-h") {
-      console.log(USAGE);
-      process.exit(0);
-    } else if (arg === "--stat") {
-      options.stat = true;
-    } else if (arg.startsWith("--unified=")) {
-      options.unified = parsePositiveInteger(arg, "unified", 0);
-    } else if (arg.startsWith("--color=")) {
-      options.color = parseColor(arg);
-    } else if (arg.startsWith("--jobs=")) {
-      options.jobs = parsePositiveInteger(arg, "jobs", 1);
-    } else if (arg.startsWith("-")) {
-      throw new Error(`Unknown option: ${arg}\n${USAGE}`);
-    } else if (options.workspacePath === null) {
-      options.workspacePath = arg;
-    } else {
-      throw new Error(`Unexpected argument: ${arg}\n${USAGE}`);
-    }
-  }
-  return options;
+  return parseProjectsArgs(argv, {
+    usage: USAGE,
+    defaults: { unified: DEFAULT_UNIFIED, stat: false },
+    parseOption(arg, options) {
+      if (arg === "--stat") {
+        options.stat = true;
+      } else if (arg.startsWith("--unified=")) {
+        options.unified = parseUnified(arg);
+      } else {
+        return false;
+      }
+      return true;
+    },
+  });
 }
 
 function plural(count, noun) {
   return `${count} ${noun}${count === 1 ? "" : "s"}`;
 }
 
-function printSummary({ changed, clean, failures, lines }, color) {
-  const parts = [`${changed} with changes`, `${clean} without changes`];
+function printSummary({ changed, clean, failures, lines }) {
+  const parts = [`${changed} with changes`, `${clean} clean`];
   if (lines) {
     parts.push(
       `${plural(lines.files, "file")} changed`,
@@ -249,13 +214,13 @@ function printSummary({ changed, clean, failures, lines }, color) {
       `${plural(lines.removed, "deletion")}(-)`,
     );
   }
-  if (failures > 0) parts.push(paint(red, color)(`${failures} failed`));
-  console.log(paint(gray, color)(paint(italic, color)(parts.join(", "))));
+  console.log(formatSummary(parts, failures));
 }
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
-  const color = shouldColorize(options.color);
+  if (options.help) return console.log(USAGE);
+  const color = applyColorMode(options.color);
   const pathnames = listWorkspace(options.workspacePath || process.cwd());
   const summary = { changed: 0, clean: 0, failures: 0 };
   if (options.stat) summary.lines = { files: 0, added: 0, removed: 0 };
@@ -266,7 +231,7 @@ async function main() {
     (pathname, { value, error }) => {
       if (error) {
         summary.failures += 1;
-        console.error(`[error] ${path.basename(pathname)}: ${error.message}`);
+        console.error(formatError(pathname, error));
         return;
       }
       if (!value.isWorkingTree) return;
@@ -281,18 +246,14 @@ async function main() {
         summary.lines.added += added;
         summary.lines.removed += removed;
       }
-      printDescriptor(pathname, value, color);
+      printDescriptor(pathname, value);
     },
   );
-  printSummary(summary, color);
+  printSummary(summary);
   process.exitCode = summary.failures > 0 ? 1 : 0;
 }
 
-// A pager or `head` closing the pipe early is not an error.
-process.stdout.on("error", (error) => {
-  if (error.code === "EPIPE") process.exit(0);
-  throw error;
-});
+quitOnClosedPipe();
 
 main().catch((err) => {
   console.error(err.message);

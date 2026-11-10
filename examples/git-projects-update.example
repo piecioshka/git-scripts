@@ -18,6 +18,7 @@ fatal: Not possible to fast-forward, aborting.
 [up-to-date] [ahead 4 in 2 branches] test-solidarity [main]
     ahead: main
     ahead: rewrite
+2 updated, 3 up-to-date, 4 skipped, 1 failed
 
 > git projects-update --verbose
 [updated] ava-live [main]
@@ -26,6 +27,7 @@ Fast-forward
  a.txt | 1 +
  1 file changed, 1 insertion(+)
 [up-to-date] battery-life-extender [main]
+1 updated, 1 up-to-date
 
 > DEBUG=true git projects-update --jobs=1
 ==> git config --get remote.origin.url
@@ -44,3 +46,4 @@ Fast-forward
 ==> git for-each-ref --format='%(refname:short)%09%(upstream:short)' refs/heads
 ==> git rev-list --count 'main'@{u}..'main'
 [updated] battery-life-extender [main]
+1 updated, 1 up-to-date

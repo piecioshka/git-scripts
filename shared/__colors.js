@@ -23,9 +23,20 @@ const colors = {
   darkGreen: "\x1b[38;5;22m",
 };
 
-const creator = (color) => (value) => `${color}${value}${colors.reset}`;
+// Colors are on by default; scripts that honor `--color` and `NO_COLOR` turn
+// them off with `setColorsEnabled(false)`, and every helper then returns the
+// plain text.
+let enabled = true;
+
+function setColorsEnabled(value) {
+  enabled = Boolean(value);
+}
+
+const creator = (color) => (value) =>
+  enabled ? `${color}${value}${colors.reset}` : String(value);
 
 module.exports = {
+  setColorsEnabled,
   reset: creator(colors.reset),
   bold: creator(colors.bold),
   dimGray: creator(colors.dimGray),

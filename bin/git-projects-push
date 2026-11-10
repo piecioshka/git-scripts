@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 
-const path = require("node:path");
 const process = require("node:process");
 const { runCommand } = require("../shared/__shared");
+const { isFile } = require("../shared/__filesystem");
+const { listWorkspace, mapInOrder } = require("../shared/__workspace");
 const {
-  isFile,
-  isHidden,
-  getFilesAndDirectories,
-} = require("../shared/__filesystem");
+  COMMON_OPTIONS,
+  parseProjectsArgs,
+  applyColorMode,
+  formatHeader,
+  formatError,
+  formatSummary,
+  quitOnClosedPipe,
+} = require("../shared/__projects");
 const {
   getGitBranchName,
   isGitBareRepository,
@@ -26,7 +31,6 @@ const {
   red,
   green,
   blue,
-  magenta,
   brown,
   cyan,
   gray,
@@ -36,17 +40,15 @@ const {
 } = require("../shared/__colors");
 
 const USAGE = `
-    Usage: [DEBUG=true] git projects-push [path=./] [--verbose] [--jobs=N]
+    Usage: [DEBUG=true] git projects-push [path=./] [--verbose] [--color=WHEN] [--jobs=N]
 
     Pushes every branch and tag of the projects in the workspace to origin.
+    Local-only repositories are skipped.
 
     Options:
 
-        --verbose   print the output of every successful push
-        --jobs=N    number of repositories pushed in parallel (default: 4)
+        --verbose       print the output of every successful push${COMMON_OPTIONS}
 `;
-
-const DEFAULT_JOBS = 4;
 
 const PUSH_STATUS = {
   NOTHING_TO_PUSH: "nothing to push",
@@ -55,6 +57,7 @@ const PUSH_STATUS = {
 };
 
 let verboseEnabled = false;
+let colorEnabled = true;
 
 // `git push` writes its whole report to stderr, so every command below
 // redirects it into stdout: without that, a successful push would have no
@@ -73,6 +76,8 @@ async function push(pathname, command) {
   }
 }
 
+const colorMode = () => (colorEnabled ? "always" : "never");
+
 // A ref name comes from git itself, but it still travels through a shell,
 // so quote it: refs may contain characters the shell would expand.
 const quote = (value) => `'${value.replace(/'/g, "'\\''")}'`;
@@ -87,18 +92,18 @@ async function pushGitRepository(
   // `push --all`, and that must not hold back the tags of the repository.
   const steps = [];
   if (hasBranches) {
-    steps.push("git -c color.ui=always push --all -v 2>&1");
+    steps.push(`git -c color.ui=${colorMode()} push --all -v 2>&1`);
   }
   // `push --all` sends the branches that have no upstream, but it does not
   // set one, so without this they would be reported and pushed again on
   // every run. `-u` is what records the tracking reference.
   for (const branch of newBranches) {
     steps.push(
-      `git -c color.ui=always push -u origin ${quote(branch)} -v 2>&1`,
+      `git -c color.ui=${colorMode()} push -u origin ${quote(branch)} -v 2>&1`,
     );
   }
   if (hasTags) {
-    steps.push("git -c color.ui=always push --tags -v 2>&1");
+    steps.push(`git -c color.ui=${colorMode()} push --tags -v 2>&1`);
   }
   const outputs = [];
   let failed = false;
@@ -237,17 +242,14 @@ function printDescriptor(pathname, descriptor) {
     pushOutput,
     unpushed,
   } = descriptor;
-  const output = renderLabels(descriptor);
-
-  output.push(path.basename(pathname));
-
-  if (isWorkingTree && branchName) {
-    output.push(magenta(`[${branchName}]`));
-  }
-
-  output.push(gray(italic(`+${elapsedTime}ms`)));
-
-  console.log(output.join(" "));
+  console.log(
+    formatHeader({
+      labels: renderLabels(descriptor),
+      pathname,
+      branchName: isWorkingTree && branchName,
+      elapsedTime,
+    }),
+  );
 
   if (unpushed) {
     const aheadBranches = getAheadBranchesToList(
@@ -269,99 +271,69 @@ function printDescriptor(pathname, descriptor) {
   }
 }
 
-async function processWorkspace(files, workspacePath, jobs) {
-  const tasks = files.map((file) => {
-    const pathname = path.resolve(workspacePath, file);
-    return { pathname, task: () => describePathname(pathname) };
-  });
-  const results = tasks.map(() => null);
-  let next = 0;
-
-  async function worker() {
-    while (next < tasks.length) {
-      const index = next++;
-      results[index] = tasks[index]
-        .task()
-        .then((descriptor) => ({ descriptor }))
-        .catch((error) => ({ error }));
-      await results[index];
-    }
-  }
-
-  const workers = Array.from({ length: Math.min(jobs, tasks.length) }, () =>
-    worker(),
-  );
-
-  const summary = { pushed: 0, failures: 0 };
-  for (let index = 0; index < tasks.length; index++) {
-    while (results[index] === null) {
-      await Promise.race(workers.concat(results.filter(Boolean)));
-    }
-    const { pathname } = tasks[index];
-    const { descriptor, error } = await results[index];
-    if (error) {
-      summary.failures += 1;
-      console.error(
-        `${red("[error]")} ${path.basename(pathname)}: ${error.message}`,
-      );
-      continue;
-    }
-    printDescriptor(pathname, descriptor);
-    if (descriptor.pushStatus === PUSH_STATUS.PUSHED) {
+function countResult(summary, descriptor) {
+  switch (descriptor.pushStatus) {
+    case PUSH_STATUS.PUSHED:
       summary.pushed += 1;
-    }
-    if (descriptor.pushStatus === PUSH_STATUS.FAILED) {
+      break;
+    case PUSH_STATUS.NOTHING_TO_PUSH:
+      summary.nothingToPush += 1;
+      break;
+    case PUSH_STATUS.FAILED:
       summary.failures += 1;
-    }
+      break;
+    default:
+      if (descriptor.isWorkingTree) summary.skipped += 1;
   }
-  await Promise.all(workers);
-  return summary;
-}
-
-function printSummary({ pushed, failures }) {
-  const parts = [green(`${pushed} pushed`)];
-  if (failures > 0) {
-    parts.push(red(`${failures} failed`));
-  }
-  console.log(parts.join(", "));
 }
 
 function parseArgs(argv) {
-  const options = { verbose: false, jobs: DEFAULT_JOBS, workspacePath: null };
-  for (const arg of argv) {
-    if (arg === "--help" || arg === "-h") {
-      console.log(USAGE);
-      process.exit(0);
-    } else if (arg === "--verbose") {
+  return parseProjectsArgs(argv, {
+    usage: USAGE,
+    defaults: { verbose: false },
+    parseOption(arg, options) {
+      if (arg !== "--verbose") return false;
       options.verbose = true;
-    } else if (arg.startsWith("--jobs=")) {
-      const jobs = Number(arg.slice("--jobs=".length));
-      if (!Number.isInteger(jobs) || jobs < 1) {
-        throw new Error(`Invalid value for --jobs: ${arg}`);
-      }
-      options.jobs = jobs;
-    } else if (arg.startsWith("-")) {
-      throw new Error(`Unknown option: ${arg}\n${USAGE}`);
-    } else if (options.workspacePath === null) {
-      options.workspacePath = arg;
-    } else {
-      throw new Error(`Unexpected argument: ${arg}\n${USAGE}`);
-    }
-  }
-  return options;
+      return true;
+    },
+  });
 }
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
+  if (options.help) return console.log(USAGE);
   verboseEnabled = options.verbose;
-  const workspacePath = options.workspacePath || process.cwd();
-  const files = getFilesAndDirectories(workspacePath)
-    .filter((file) => !isHidden(file))
-    .sort();
-  const summary = await processWorkspace(files, workspacePath, options.jobs);
-  printSummary(summary);
+  colorEnabled = applyColorMode(options.color);
+  const pathnames = listWorkspace(options.workspacePath || process.cwd());
+  const summary = { pushed: 0, nothingToPush: 0, skipped: 0, failures: 0 };
+  await mapInOrder(
+    pathnames,
+    options.jobs,
+    describePathname,
+    (pathname, { value, error }) => {
+      if (error) {
+        summary.failures += 1;
+        console.error(formatError(pathname, error));
+        return;
+      }
+      printDescriptor(pathname, value);
+      countResult(summary, value);
+    },
+  );
+  console.log(
+    formatSummary(
+      [
+        `${summary.pushed} pushed`,
+        `${summary.nothingToPush} with nothing to push`,
+        summary.skipped > 0 && `${summary.skipped} skipped`,
+      ],
+      summary.failures,
+    ),
+  );
   process.exitCode = summary.failures > 0 ? 1 : 0;
 }
+
+quitOnClosedPipe();
 
 main().catch((err) => {
   console.error(err.message);
