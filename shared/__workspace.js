@@ -44,7 +44,30 @@ async function mapInOrder(items, jobs, task, onResult) {
   await Promise.all(workers);
 }
 
+// Like `mapInOrder`, but calls `onResult` as soon as a task finishes, so a slow
+// item does not hold back the results of the faster ones after it.
+async function mapAsCompleted(items, jobs, task, onResult) {
+  let next = 0;
+
+  async function worker() {
+    while (next < items.length) {
+      const index = next++;
+      try {
+        onResult(items[index], { value: await task(items[index]) });
+      } catch (error) {
+        onResult(items[index], { error });
+      }
+    }
+  }
+
+  const workers = Array.from({ length: Math.min(jobs, items.length) }, () =>
+    worker(),
+  );
+  await Promise.all(workers);
+}
+
 module.exports = {
   listWorkspace,
   mapInOrder,
+  mapAsCompleted,
 };

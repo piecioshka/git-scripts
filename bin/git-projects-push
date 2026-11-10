@@ -4,7 +4,7 @@ const path = require("node:path");
 const process = require("node:process");
 const { runCommand } = require("../shared/__shared");
 const { isFile } = require("../shared/__filesystem");
-const { listWorkspace, mapInOrder } = require("../shared/__workspace");
+const { listWorkspace, mapAsCompleted } = require("../shared/__workspace");
 const {
   COMMON_OPTIONS,
   parseProjectsArgs,
@@ -12,7 +12,6 @@ const {
   formatHeader,
   formatError,
   formatSummary,
-  createProgressLine,
   quitOnClosedPipe,
 } = require("../shared/__projects");
 const {
@@ -61,26 +60,13 @@ const PUSH_STATUS = {
 let verboseEnabled = false;
 let colorEnabled = true;
 
-// A push runs the pre-push hook, which can take minutes, and the results are
-// printed in the order of the workspace, so without this line nothing would
-// show up until the slowest repository at the top was done.
-const progress = createProgressLine();
-const pushing = new Set();
-
-function showPushing() {
-  const names = [...pushing].join(", ");
-  progress.update(names ? `Pushing ${names}…` : "");
-}
-
-async function trackPushing(pathname, run) {
-  pushing.add(path.basename(pathname));
-  showPushing();
-  try {
-    return await run();
-  } finally {
-    pushing.delete(path.basename(pathname));
-    showPushing();
-  }
+// A push runs the pre-push hook, which can take minutes, so every repository
+// says when its push starts, and its result is printed as soon as it is done
+// (in the order of completion, not of the workspace).
+function announcePush(pathname, branchName) {
+  console.log(
+    formatHeader({ labels: [cyan("[pushing…]")], pathname, branchName }),
+  );
 }
 
 // `git push` writes its whole report to stderr, so every command below
@@ -167,13 +153,12 @@ async function describePathname(pathname) {
       result.unpushed.unpushedBranches.length > 0;
     const hasTags = result.unpushedTags > 0;
     if (hasBranches || hasTags) {
-      const { status, output } = await trackPushing(pathname, () =>
-        pushGitRepository(pathname, {
-          hasBranches,
-          hasTags,
-          newBranches: result.unpushed.unpushedBranches,
-        }),
-      );
+      announcePush(pathname, result.branchName);
+      const { status, output } = await pushGitRepository(pathname, {
+        hasBranches,
+        hasTags,
+        newBranches: result.unpushed.unpushedBranches,
+      });
       result.pushStatus = status;
       result.pushOutput = output;
     } else {
@@ -332,17 +317,17 @@ async function main() {
   colorEnabled = applyColorMode(options.color);
   const pathnames = listWorkspace(options.workspacePath || process.cwd());
   const summary = { pushed: 0, nothingToPush: 0, skipped: 0, failures: 0 };
-  await mapInOrder(
+  await mapAsCompleted(
     pathnames,
     options.jobs,
     describePathname,
     (pathname, { value, error }) => {
       if (error) {
         summary.failures += 1;
-        progress.around(() => console.error(formatError(pathname, error)));
+        console.error(formatError(pathname, error));
         return;
       }
-      progress.around(() => printDescriptor(pathname, value));
+      printDescriptor(pathname, value);
       countResult(summary, value);
     },
   );

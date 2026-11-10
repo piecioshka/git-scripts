@@ -15,7 +15,6 @@ const {
   sumLines,
   plural,
   formatLineTotals,
-  createProgressLine,
 } = require("./__projects");
 
 const usage = "usage";
@@ -190,53 +189,5 @@ describe("numstat", () => {
       "2 insertions(+)",
       "1 deletion(-)",
     ]);
-  });
-});
-
-describe("createProgressLine", () => {
-  const fakeStream = (isTTY, columns = 80) => {
-    const writes = [];
-    return { isTTY, columns, writes, write: (value) => writes.push(value) };
-  };
-
-  afterEach(() => setColorsEnabled(true));
-
-  it("draws nothing when the stream is not a terminal", () => {
-    const stream = fakeStream(false);
-    const progress = createProgressLine(stream);
-    progress.update("Pushing a…");
-    progress.around(() => {});
-    assert.deepEqual(stream.writes, []);
-  });
-
-  it("erases the line before printing and draws it again after", () => {
-    setColorsEnabled(false);
-    const stream = fakeStream(true);
-    const progress = createProgressLine(stream);
-    progress.update("Pushing a…");
-    progress.around(() => stream.write("result\n"));
-    assert.deepEqual(stream.writes, [
-      "\r\x1b[KPushing a…",
-      "\r\x1b[K",
-      "result\n",
-      "\r\x1b[KPushing a…",
-    ]);
-  });
-
-  it("cuts the line to the width of the terminal", () => {
-    setColorsEnabled(false);
-    const stream = fakeStream(true, 11);
-    createProgressLine(stream).update("Pushing abcdef…");
-    assert.deepEqual(stream.writes, ["\r\x1b[KPushing a…"]);
-  });
-
-  it("stays erased once the text is empty", () => {
-    setColorsEnabled(false);
-    const stream = fakeStream(true);
-    const progress = createProgressLine(stream);
-    progress.update("Pushing a…");
-    progress.update("");
-    progress.around(() => {});
-    assert.deepEqual(stream.writes, ["\r\x1b[KPushing a…", "\r\x1b[K"]);
   });
 });

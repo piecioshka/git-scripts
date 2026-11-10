@@ -148,36 +148,6 @@ function formatLineTotals({ files, added, removed }) {
   ];
 }
 
-// A status line on stderr, redrawn in place, naming the work that has not
-// printed its result yet. It is drawn only on a terminal, and it is cut to the
-// width of the terminal, because a wrapped line could not be erased.
-function createProgressLine(stream = process.stderr) {
-  const enabled = Boolean(stream.isTTY);
-  let text = "";
-  const draw = () => {
-    if (!enabled || !text) return;
-    const width = Math.max((stream.columns || 80) - 1, 1);
-    const line = text.length > width ? `${text.slice(0, width - 1)}…` : text;
-    stream.write(`\r\x1b[K${gray(italic(line))}`);
-  };
-  const erase = () => {
-    if (enabled && text) stream.write("\r\x1b[K");
-  };
-  return {
-    update(value) {
-      erase();
-      text = value;
-      draw();
-    },
-    // Runs `print` with the line out of the way, then draws it again below.
-    around(print) {
-      erase();
-      print();
-      draw();
-    },
-  };
-}
-
 // A pager or `head` closing the pipe early is not an error.
 function quitOnClosedPipe() {
   process.stdout.on("error", (error) => {
@@ -203,6 +173,5 @@ module.exports = {
   plural,
   formatLineLabel,
   formatLineTotals,
-  createProgressLine,
   quitOnClosedPipe,
 };
