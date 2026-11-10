@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+
+set -e
+
+# Shows `git status -sb` of every Git repository found below the current
+# directory. The options (--max-depth, --color) go to `git run-on-nested-repos`,
+# which keeps the colors when printing to a terminal.
+if [[ "$1" == "--help" || "$1" == "-h" ]]; then
+    cat <<'EOF'
+
+    Usage: git projects-status [--max-depth=N] [--color=WHEN]
+
+    Shows the short status (with the branch) of every Git repository found
+    below the current directory. The options are passed to
+    `git run-on-nested-repos`.
+
+EOF
+    exit 0
+fi
+
+exec git run-on-nested-repos "git status -sb" "$@"
