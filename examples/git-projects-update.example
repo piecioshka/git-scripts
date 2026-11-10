@@ -2,9 +2,7 @@
 [updated] ava-live [main]
 [untracked 2] [up-to-date] battery-life-extender [main]
 [up-to-date] [ahead 2] boilerplate-jasmine-typescript [main]
-    ahead: main
 [dirty 3] [ahead 1] dicts [main]
-    ahead: main
 [update failed] eslint-config-piecioshka [main]
 From github.com:piecioshka/eslint-config-piecioshka
    2616d10..bd01feb  main       -> origin/main
@@ -38,7 +36,6 @@ Fast-forward
 ==> git for-each-ref --format='%(refname:short)%09%(upstream:short)' refs/heads
 ==> git rev-list --count 'main'@{u}..'main'
 [up-to-date] [ahead 2] ava-live [main]
-    ahead: main
 ==> git config --get remote.origin.url
 ==> git status --porcelain --untracked-files=no 2>/dev/null | wc -l
 ==> git branch --show-current

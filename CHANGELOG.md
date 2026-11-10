@@ -2,6 +2,7 @@
 
 All notable changes to this project, newest first.
 
+- 2026-11-10 - `git projects-status`, `git projects-update` and `git projects-push` no longer print `ahead: <branch>` below a repository when the only ahead branch is the current one: its name already stands next to `[ahead N]`, so the line repeated it for almost every repository. The list is still printed when another branch, or more than one, is ahead. `getAheadBranchesToList` was added to the shared Git helpers.
 - 2026-11-10 - Added `--stat` to `git projects-diff`: instead of the diff it lists the changed files with the number of added and removed lines (`git diff --numstat`), shows the totals next to every repository and adds the number of changed files, insertions and deletions in the whole workspace to the summary.
 - 2026-11-10 - Added `git projects-status` and `git projects-diff`, which report the state and the diff of all projects in the workspace, `N` repositories at a time. Both skip what has nothing to show (`--changed` in `git projects-status`, always in `git projects-diff`) and quit quietly when a pager or `head` closes the pipe. `listWorkspace` and `mapInOrder` (parallel work, output in order) were added to the shared helpers.
 - 2026-11-08 - Added `[untracked N]` to `git projects-push`, and a warning to `git zip` when untracked files were left out of the package; until now `git zip` could report a clean build of a package that was missing new files.

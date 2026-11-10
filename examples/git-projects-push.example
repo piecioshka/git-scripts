@@ -1,14 +1,11 @@
 > git projects-push
 [ahead 2] [pushed] boilerplate-jasmine-typescript [main]
-    ahead: main
 [nothing to push] battery-life-extender [main]
 [dirty 3] [ahead 1] [pushed] dicts [main]
-    ahead: main
 [never pushed 1] [pushed] fakes-auth [feature]
     never pushed: feature
 [tags 2] [pushed] is-responding [main]
 [ahead 1] [push failed] eslint-config-piecioshka [main]
-    ahead: main
 To github.com:piecioshka/eslint-config-piecioshka.git
  ! [rejected]        main -> main (fetch first)
 error: failed to push some refs to 'github.com:piecioshka/eslint-config-piecioshka.git'
@@ -36,4 +33,3 @@ To github.com:piecioshka/is-responding.git
 ==> git -c color.ui=always push --all -v 2>&1
 ==> git -c color.ui=always push --tags -v 2>&1
 [ahead 2] [pushed] ava-live [main]
-    ahead: main

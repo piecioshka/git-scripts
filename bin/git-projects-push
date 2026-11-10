@@ -17,6 +17,7 @@ const {
   countGitUntrackedFiles,
   countGitUnpushedTags,
   getGitUnpushedState,
+  getAheadBranchesToList,
   isGitWorktree,
 } = require("../shared/__git");
 const {
@@ -249,7 +250,11 @@ function printDescriptor(pathname, descriptor) {
   console.log(output.join(" "));
 
   if (unpushed) {
-    for (const branch of unpushed.aheadBranches) {
+    const aheadBranches = getAheadBranchesToList(
+      unpushed.aheadBranches,
+      branchName,
+    );
+    for (const branch of aheadBranches) {
       console.log(gray(`    ahead: ${branch}`));
     }
     for (const branch of unpushed.unpushedBranches) {

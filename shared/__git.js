@@ -129,6 +129,15 @@ async function getGitUnpushedState(pathname) {
   return result;
 }
 
+// The ahead branches worth naming below a repository. When only the current
+// branch is ahead, its name already stands next to `[ahead N]`, so repeating
+// it on its own line says nothing new.
+function getAheadBranchesToList(aheadBranches, currentBranch) {
+  const isOnlyCurrent =
+    aheadBranches.length === 1 && aheadBranches[0] === currentBranch;
+  return isOnlyCurrent ? [] : aheadBranches;
+}
+
 // The local tags that origin does not have yet. `--dry-run` asks git what a
 // real `push --tags` would do, so the answer covers exactly the tags that
 // would travel, without creating anything on the remote.
@@ -176,5 +185,6 @@ module.exports = {
   countGitDirtyFiles,
   countGitUntrackedFiles,
   getGitUnpushedState,
+  getAheadBranchesToList,
   countGitUnpushedTags,
 };

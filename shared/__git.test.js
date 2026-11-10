@@ -17,6 +17,7 @@ const {
   countGitDirtyFiles,
   countGitUntrackedFiles,
   getGitUnpushedState,
+  getAheadBranchesToList,
   countGitUnpushedTags,
 } = require("./__git");
 
@@ -273,5 +274,26 @@ describe("countGitUnpushedTags", () => {
 
   it("is zero outside of a repository", async () => {
     assert.equal(await countGitUnpushedTags(dir("plain-dir")), 0);
+  });
+});
+
+describe("getAheadBranchesToList", () => {
+  it("is empty when only the current branch is ahead", () => {
+    assert.deepEqual(getAheadBranchesToList(["main"], "main"), []);
+  });
+
+  it("names a single ahead branch that is not the current one", () => {
+    assert.deepEqual(getAheadBranchesToList(["rewrite"], "main"), ["rewrite"]);
+  });
+
+  it("names every branch when more than one is ahead", () => {
+    assert.deepEqual(getAheadBranchesToList(["main", "rewrite"], "main"), [
+      "main",
+      "rewrite",
+    ]);
+  });
+
+  it("names the branch when there is no current branch (detached HEAD)", () => {
+    assert.deepEqual(getAheadBranchesToList(["main"], ""), ["main"]);
   });
 });

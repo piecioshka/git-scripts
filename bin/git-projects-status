@@ -15,6 +15,7 @@ const {
   countGitDirtyFiles,
   countGitUntrackedFiles,
   getGitUnpushedState,
+  getAheadBranchesToList,
 } = require("../shared/__git");
 const {
   dimGray,
@@ -141,7 +142,11 @@ function printDescriptor(pathname, descriptor) {
   console.log(output.join(" "));
 
   if (descriptor.unpushed) {
-    for (const branch of descriptor.unpushed.aheadBranches) {
+    const aheadBranches = getAheadBranchesToList(
+      descriptor.unpushed.aheadBranches,
+      descriptor.branchName,
+    );
+    for (const branch of aheadBranches) {
       console.log(gray(`    ahead: ${branch}`));
     }
     for (const branch of descriptor.unpushed.unpushedBranches) {
